@@ -1,49 +1,62 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image
-import io
-import base64
+from typing import List, Optional
+from pydantic import BaseModel
+import json
 import tempfile
-from main_fastapi import run_sam2_pipeline  
+from PIL import Image
+import base64
+import io
+
+from sam2_predict_runner import run_sam2_predict  # 主推論邏輯
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # 或 ["http://localhost:3000"]
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-@app.post("/encode")
-async def encode_image(
+@app.post("/predict")
+async def predict_mask(
     file: UploadFile = File(...),
-    x: int = Form(...),
-    y: int = Form(...),
-    x1: int = Form(...),
-    y1: int = Form(...),
-    x2: int = Form(...),
-    y2: int = Form(...)
+    points: str = Form(...),       # JSON 字串
+    box: Optional[str] = Form(None)  # JSON 字串
 ):
+    # 存圖
     contents = await file.read()
-
-    # 存成臨時圖片
     with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
         tmp.write(contents)
-        tmp_path = tmp.name
+        image_path = tmp.name
 
     try:
-        # 呼叫 SAM2 遮罩生成功能（不跑 Wonder3D）
-        mask_path = run_sam2_pipeline(tmp_path, point=(x, y), box=(x1, y1, x2, y2))
+        # 解析點資料
+        point_data = json.loads(points)  # List[{"x": int, "y": int, "label": int}]
+        coords = [(p["x"], p["y"]) for p in point_data]
+        labels = [p["label"] for p in point_data]
 
-        # 轉 base64 回傳
-        with open(mask_path, "rb") as f:
-            base64_mask = base64.b64encode(f.read()).decode("utf-8")
+        # 解析 box 資料（如果有）
+        box_tuple = None
+        if box:
+            box_data = json.loads(box)
+            box_tuple = (box_data["x1"], box_data["y1"], box_data["x2"], box_data["y2"])
+
+        # 呼叫推論核心
+        mask: Image.Image = run_sam2_predict(image_path, coords, labels, box_tuple)
+
+        # 回傳 base64 圖
+        buffer = io.BytesIO()
+        mask.save(buffer, format="PNG")
+        base64_mask = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
         return {
             "status": "ok",
             "mask_base64": base64_mask
         }
+
     except Exception as e:
         return {
             "status": "error",

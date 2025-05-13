@@ -1,16 +1,22 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+
+type Mode = 'point-positive' | 'point-negative' | 'box';
+
+type Point = { x: number; y: number; label: 0 | 1 };
+type BoxCoord = { x: number; y: number };
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [maskBase64, setMaskBase64] = useState<string | null>(null);
 
-  const [clicks, setClicks] = useState<{ x: number; y: number }[]>([]);
-  const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+  const [points, setPoints] = useState<Point[]>([]);
+  const [boxTemp, setBoxTemp] = useState<BoxCoord[]>([]); // 暫存 box 點
   const [box, setBox] = useState<[number, number, number, number] | null>(null);
 
+  const [mode, setMode] = useState<Mode>('point-positive');
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
@@ -18,63 +24,72 @@ export default function UploadPage() {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      setMaskBase64(null);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setClicks([]);
-      setPoint(null);
+      setPreviewUrl(URL.createObjectURL(file));
+      setPoints([]);
       setBox(null);
+      setMaskBase64(null);
     }
   };
 
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleCanvasClick = async (e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     const img = imageRef.current;
-    if (!canvas || !img) return;
-  
+    if (!canvas || !img || !selectedFile) return;
+
     const rect = canvas.getBoundingClientRect();
-  
-    // CSS 實際顯示大小 vs 實際畫布大小
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-  
+    const scaleX = img.naturalWidth / rect.width;
+    const scaleY = img.naturalHeight / rect.height;
+
     const x = Math.floor((e.clientX - rect.left) * scaleX);
     const y = Math.floor((e.clientY - rect.top) * scaleY);
-  
-    const newClicks = [...clicks, { x, y }];
-    setClicks(newClicks);
-  
-    if (newClicks.length === 1) {
-      setPoint(newClicks[0]);
-    } else if (newClicks.length === 3) {
-      const [_, p1, p2] = newClicks;
-      setBox([
-        Math.min(p1.x, p2.x),
-        Math.min(p1.y, p2.y),
-        Math.max(p1.x, p2.x),
-        Math.max(p1.y, p2.y),
-      ]);
+
+    if (mode === 'point-positive' || mode === 'point-negative') {
+      const label: 0 | 1 = mode === 'point-positive' ? 1 : 0;
+      const newPoints: Point[] = [...points, { x, y, label }];
+      setPoints(newPoints);
+      console.log('已新增點:', newPoints);
+      await sendToBackend(newPoints, box, selectedFile);
+    }
+    
+
+    if (mode === 'box') {
+      const temp = [...boxTemp, { x, y }];
+      setBoxTemp(temp);
+
+
+      if (temp.length === 2) {
+        const x1 = Math.min(temp[0].x, temp[1].x);
+        const y1 = Math.min(temp[0].y, temp[1].y);
+        const x2 = Math.max(temp[0].x, temp[1].x);
+        const y2 = Math.max(temp[0].y, temp[1].y);
+        const boxVal: [number, number, number, number] = [x1, y1, x2, y2];
+        setBox(boxVal);
+        setBoxTemp([]);
+        console.log('已完成框選:', boxVal);
+        await sendToBackend(points, boxVal, selectedFile);
+      } else {
+        setBoxTemp(temp);
+      }
     }
   };
-  
 
-  const handleUpload = async () => {
-    setClicks([]);
-    if (!selectedFile || !point || !box) {
-      alert('請上傳圖片並點擊兩次：一次取點、一次框住區域');
-      return;
+  const sendToBackend = async (
+    points: Point[],
+    box: [number, number, number, number] | null,
+    file: File
+  ) => {
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('points', JSON.stringify(points));
+    if (box) {
+      formData.append(
+        'box',
+        JSON.stringify({ x1: box[0], y1: box[1], x2: box[2], y2: box[3] })
+      );
     }
 
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('x', point.x.toString());
-    formData.append('y', point.y.toString());
-    formData.append('x1', box[0].toString());
-    formData.append('y1', box[1].toString());
-    formData.append('x2', box[2].toString());
-    formData.append('y2', box[3].toString());
-
-    const res = await fetch('http://localhost:8000/encode', {
+    const res = await fetch('http://localhost:8000/predict', {
       method: 'POST',
       body: formData,
     });
@@ -83,71 +98,102 @@ export default function UploadPage() {
     setMaskBase64(data.mask_base64);
   };
 
+  const drawMask = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    const img = imageRef.current;
+    if (!canvas || !ctx || !img || !maskBase64) return;
+  
+    const { naturalWidth, naturalHeight } = img;
+    canvas.width = naturalWidth;
+    canvas.height = naturalHeight;
+  
+    const maskImg = new Image();
+    maskImg.src = `data:image/png;base64,${maskBase64}`;
+    maskImg.onload = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height); // 先清
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // 原圖
+      ctx.globalAlpha = 0.5;
+      ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height); // 遮罩
+      ctx.globalAlpha = 1;
+  
+      // 測試框（可刪）
+      //ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
+      //ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+  
+    maskImg.onerror = () => {
+      console.error("遮罩載入失敗，base64:", maskBase64?.substring(0, 30));
+    };
+  };
+  
+
+  useEffect(() => {
+    drawMask();
+  }, [maskBase64]);
+
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen gap-4 p-8">
-      <h1 className="text-2xl font-bold">SAM2 點擊選點 + 框選分割</h1>
+    <main className="p-4 flex flex-col items-center gap-4">
+      <h1 className="text-xl font-bold">SAM2 多點遮罩測試</h1>
+
+      <div className="flex gap-2">
+        <button onClick={() => setMode('point-positive')} className="bg-blue-500 text-white px-2 py-1 rounded">
+          正點
+        </button>
+        <button onClick={() => setMode('point-negative')} className="bg-blue-500 text-white px-2 py-1 rounded">
+          負點
+        </button>
+        <button onClick={() => setMode('box')} className="bg-blue-500 text-white px-2 py-1 rounded">
+          框選
+        </button>
+      </div>
 
       <input type="file" accept="image/*" onChange={handleFileChange} />
 
       {previewUrl && (
-        <>
+        <div>
+          <div style={{ position: 'relative' }}>
           <canvas
             ref={canvasRef}
             style={{
-              border: '1px solid gray',
-              maxWidth: '80vw',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              zIndex: 1,
+              width: '100%',
               height: 'auto',
+              cursor: 'crosshair',
             }}
             onClick={handleCanvasClick}
           />
-          <img
-            ref={imageRef}
-            src={previewUrl}
-            alt="預覽"
-            hidden
-            onLoad={() => {
-              const canvas = canvasRef.current;
-              const ctx = canvas?.getContext('2d');
-              const img = imageRef.current;
-              if (canvas && ctx && img) {
-                const { naturalWidth, naturalHeight } = img;
-            
-                // 動態設定 canvas 寬高
-                canvas.width = naturalWidth;
-                canvas.height = naturalHeight;
-            
-                // 畫圖
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.drawImage(img, 0, 0, naturalWidth, naturalHeight);
-              }
-            }}
-            
-          />
-
-            {clicks.length === 0 && <p>請點擊第一次（SAM2 點）</p>}
-            {clicks.length === 1 && <p>請點擊第二次（框選左上角）</p>}
-            {clicks.length === 2 && <p>請點擊第三次（框選右下角）</p>}
-            {clicks.length === 3 && point && box && (
-              <p>點位：({point.x}, {point.y})，框：({box[0]}, {box[1]}) - ({box[2]}, {box[3]})</p>
-            )}
-
-        </>
-      )}
-
-      <button
-        onClick={handleUpload}
-        className="bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        執行 SAM2 分割
-      </button>
-
-      {maskBase64 && (
-        <img
-          src={`data:image/png;base64,${maskBase64}`}
-          alt="遮罩結果"
-          className="mt-4 border"
-          style={{ maxWidth: '512px' }}
-        />
+            <img
+              ref={imageRef}
+              src={previewUrl}
+              alt="預覽圖"
+              onLoad={() => {
+                const img = imageRef.current;
+                const canvas = canvasRef.current;
+                if (img && canvas) {
+                  canvas.width = img.naturalWidth;
+                  canvas.height = img.naturalHeight;
+                  canvas.style.width = img.clientWidth + 'px';
+                  canvas.style.height = img.clientHeight + 'px';
+                }
+                drawMask();
+              }}
+              
+              style={{ maxWidth: '80vw', height: 'auto', display: 'block', position: 'relative', zIndex: 0 }}
+            />
+          </div>
+          
+          {/* 提示文字區 */}
+          <div className="mt-2">
+            {mode === 'point-positive' && <p className="text-green-700">請點擊圖片以新增 <strong>正點</strong></p>}
+            {mode === 'point-negative' && <p className="text-red-700">請點擊圖片以新增 <strong>負點</strong></p>}
+            {mode === 'box' && boxTemp.length === 0 && <p className="text-blue-700">請點擊圖片以選擇 <strong>框選左上角</strong></p>}
+            {mode === 'box' && boxTemp.length === 1 && <p className="text-blue-700">請點擊圖片以選擇 <strong>框選右下角</strong></p>}
+          </div>
+        </div>
       )}
     </main>
   );
