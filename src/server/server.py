@@ -1,9 +1,10 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-from PIL import Image, ImageDraw
+from PIL import Image
 import io
 import base64
-from sam2_runner import run_sam2
+import tempfile
+from main_fastapi import run_sam2_pipeline  
 
 app = FastAPI()
 
@@ -25,16 +26,26 @@ async def encode_image(
     y2: int = Form(...)
 ):
     contents = await file.read()
-    image = Image.open(io.BytesIO(contents)).convert("RGB")
 
-    masked = run_sam2(image, point=(x, y), box=(x1, y1, x2, y2))
+    # 存成臨時圖片
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
 
-    # 回傳 base64 圖片
-    buf = io.BytesIO()
-    masked.save(buf, format="PNG")
-    base64_str = base64.b64encode(buf.getvalue()).decode("utf-8")
+    try:
+        # 呼叫 SAM2 遮罩生成功能（不跑 Wonder3D）
+        mask_path = run_sam2_pipeline(tmp_path, point=(x, y), box=(x1, y1, x2, y2))
 
-    return {
-        "status": "ok",
-        "mask_base64": base64_str
-    }
+        # 轉 base64 回傳
+        with open(mask_path, "rb") as f:
+            base64_mask = base64.b64encode(f.read()).decode("utf-8")
+
+        return {
+            "status": "ok",
+            "mask_base64": base64_mask
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
+        }
