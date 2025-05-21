@@ -8,13 +8,13 @@ from PIL import Image
 import base64
 import io
 
-from sam2_predict_runner import run_sam2_predict  # 主推論邏輯
+from sam2_predict_runner import run_sam2_predict  
 
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 或 ["http://localhost:3000"]
+    allow_origins=["*"],  # 或 "http://localhost:3000"
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -38,13 +38,13 @@ async def predict_mask(
         coords = [(p["x"], p["y"]) for p in point_data]
         labels = [p["label"] for p in point_data]
 
-        # 解析 box 資料（如果有）
+        # 解析 box 資料
         box_tuple = None
         if box:
             box_data = json.loads(box)
             box_tuple = (box_data["x1"], box_data["y1"], box_data["x2"], box_data["y2"])
 
-        # 呼叫推論核心
+        # sam2
         mask: Image.Image = run_sam2_predict(image_path, coords, labels, box_tuple)
 
         # 回傳 base64 圖
