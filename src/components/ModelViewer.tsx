@@ -1,10 +1,14 @@
 'use client';
 import '@google/model-viewer';
 
-export default function ModelViewer() {
+type ModelViewerProps = {
+  src: string;
+};
+
+export default function ModelViewer({ src }: ModelViewerProps) {
   return (
     <model-viewer
-      src="/model1.glb"
+      src={src}
       alt="3D model"
       auto-rotate
       camera-controls

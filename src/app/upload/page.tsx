@@ -1,11 +1,15 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import ClientModelPage from '@/components/ClientModelPage';
 
 type Mode = 'point-positive' | 'point-negative' | 'box';
 
 type Point = { x: number; y: number; label: 0 | 1 };
 type BoxCoord = { x: number; y: number };
+
+
+
 
 export default function UploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -20,6 +24,8 @@ export default function UploadPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
 
+  const [modelPath, setModelPath] = useState<string | null>(null);
+  
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -72,6 +78,45 @@ export default function UploadPage() {
       }
     }
   };
+  const handleGenerate = async () => {
+    if (!selectedFile || points.length === 0) {
+      alert("請先上傳圖片與選點");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+    formData.append('points', JSON.stringify(points));
+    if (box) {
+      formData.append(
+        'box',
+        JSON.stringify({ x1: box[0], y1: box[1], x2: box[2], y2: box[3] })
+      );
+    }
+    formData.append('camera_type', 'persp');
+
+    const res = await fetch('http://localhost:8000/generate', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+    if (data.status === "ok") {
+      alert("模型已生成！");
+      console.log("模型路徑:", data.model_path);
+
+      // 這裡組合完整 URL，並存到 state 或直接傳給 ClientModelPage
+      const backendBaseUrl = "http://localhost:8000"; // 你的後端地址
+      const fullModelUrl = backendBaseUrl + data.model_path;
+
+      // 假設你要用 state 管理模型路徑，並用它來渲染 ClientModelPage
+      setModelPath(fullModelUrl);
+
+    } else {
+      alert("生成失敗: " + data.message);
+    }
+  };
+
 
   const sendToBackend = async (
     points: Point[],
@@ -96,6 +141,9 @@ export default function UploadPage() {
 
     const data = await res.json();
     setMaskBase64(data.mask_base64);
+    console.log("maskBase64長度:", data.mask_base64?.length);
+    console.log("maskBase64前30字:", data.mask_base64?.slice(0,30));
+
   };
 
   const drawMask = () => {
@@ -109,8 +157,10 @@ export default function UploadPage() {
     canvas.height = naturalHeight;
   
     const maskImg = new Image();
+    //maskImg.src = data:image/png;base64,${maskBase64};
     maskImg.src = `data:image/png;base64,${maskBase64}`;
     maskImg.onload = () => {
+      console.log("遮罩圖片已載入");
       ctx.clearRect(0, 0, canvas.width, canvas.height); // 先清
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // 原圖
       ctx.globalAlpha = 0.5;
@@ -138,10 +188,10 @@ export default function UploadPage() {
 
       <div className="flex gap-2">
         <button onClick={() => setMode('point-positive')} className="bg-blue-500 text-white px-2 py-1 rounded">
-          正點
+          保留
         </button>
         <button onClick={() => setMode('point-negative')} className="bg-blue-500 text-white px-2 py-1 rounded">
-          負點
+          移除
         </button>
         <button onClick={() => setMode('box')} className="bg-blue-500 text-white px-2 py-1 rounded">
           框選
@@ -152,7 +202,7 @@ export default function UploadPage() {
 
       {previewUrl && (
         <div>
-          <div style={{ position: 'relative' }}>
+          <div  style={{ position: 'relative', flexBasis: '60%', flexShrink: 0, width: '100%', border: '1px solid #ddd', overflow: 'hidden' }}>
           <canvas
             ref={canvasRef}
             style={{
@@ -161,7 +211,7 @@ export default function UploadPage() {
               left: 0,
               zIndex: 1,
               width: '100%',
-              height: 'auto',
+              height: '100%',
               cursor: 'crosshair',
             }}
             onClick={handleCanvasClick}
@@ -188,13 +238,25 @@ export default function UploadPage() {
           
           {/* 提示文字區 */}
           <div className="mt-2">
-            {mode === 'point-positive' && <p className="text-green-700">請點擊圖片以新增 <strong>正點</strong></p>}
-            {mode === 'point-negative' && <p className="text-red-700">請點擊圖片以新增 <strong>負點</strong></p>}
+            {mode === 'point-positive' && <p className="text-green-700">請點擊圖片以新增 <strong>保留</strong></p>}
+            {mode === 'point-negative' && <p className="text-red-700">請點擊圖片以新增 <strong>移除</strong></p>}
             {mode === 'box' && boxTemp.length === 0 && <p className="text-blue-700">請點擊圖片以選擇 <strong>框選左上角</strong></p>}
             {mode === 'box' && boxTemp.length === 1 && <p className="text-blue-700">請點擊圖片以選擇 <strong>框選右下角</strong></p>}
           </div>
         </div>
       )}
+      <button
+        className="mt-4 bg-green-600 text-white px-4 py-2 rounded"
+        onClick={handleGenerate}
+      >
+        生成 3D 模型
+      </button>
+      <div style={{ flexBasis: '40%', flexShrink: 0, width: '100%', marginTop: 20, border: '1px solid #ddd' }}>
+        {modelPath && <ClientModelPage modelPath={modelPath} />}
+      </div>
+      
+
+
     </main>
   );
-}
+}   

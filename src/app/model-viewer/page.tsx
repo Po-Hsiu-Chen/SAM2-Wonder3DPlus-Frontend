@@ -1,5 +1,5 @@
-import ClientModelPage from '@/components/ClientModelPage';
+// import ClientModelPage from '@/components/ClientModelPage';
 
-export default function Page() {
-  return <ClientModelPage />;
-}
+// export default function Page() {
+//   return <ClientModelPage />;
+// }
