@@ -25,7 +25,8 @@ export default function UploadPage() {
   const imageRef = useRef<HTMLImageElement | null>(null);
 
   const [modelPath, setModelPath] = useState<string | null>(null);
-  
+  const [isGenerating, setIsGenerating] = useState(false);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -78,43 +79,41 @@ export default function UploadPage() {
       }
     }
   };
+
   const handleGenerate = async () => {
     if (!selectedFile || points.length === 0) {
       alert("請先上傳圖片與選點");
       return;
     }
 
+    setIsGenerating(true); // 開始載入狀態
+
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('points', JSON.stringify(points));
     if (box) {
-      formData.append(
-        'box',
-        JSON.stringify({ x1: box[0], y1: box[1], x2: box[2], y2: box[3] })
-      );
+      formData.append('box', JSON.stringify({ x1: box[0], y1: box[1], x2: box[2], y2: box[3] }));
     }
     formData.append('camera_type', 'persp');
 
-    const res = await fetch('http://localhost:8000/generate', {
-      method: 'POST',
-      body: formData
-    });
-
-    const data = await res.json();
-    if (data.status === "ok") {
-      alert("模型已生成！");
-      console.log("模型路徑:", data.model_path);
-
-      // 這裡組合完整 URL，並存到 state 或直接傳給 ClientModelPage
-      const backendBaseUrl = "http://localhost:8000"; // 你的後端地址
-      const fullModelUrl = backendBaseUrl + data.model_path;
-
-      // 假設你要用 state 管理模型路徑，並用它來渲染 ClientModelPage
-      setModelPath(fullModelUrl);
-
-    } else {
-      alert("生成失敗: " + data.message);
+    try {
+      const res = await fetch('http://localhost:8000/generate', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        alert("模型已生成！");
+        const backendBaseUrl = "http://localhost:8000";
+        setModelPath(backendBaseUrl + data.model_path);
+      } else {
+        alert("生成失敗: " + data.message);
+      }
+    } catch (error) {
+      alert("請求失敗：" + error);
     }
+
+    setIsGenerating(false); // 載入結束
   };
 
 
@@ -419,11 +418,77 @@ export default function UploadPage() {
 
 
       </div>
+      
+      {/* 生成中狀態顯示區 */}
+      `<div style={{ position: 'relative', width: '100%' }}>
+        {isGenerating && (
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backdropFilter: 'blur(4px)',
+              backgroundColor: 'rgba(255,255,255,0.6)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+              borderRadius: 12,
+            }}
+          >
+            <div
+              style={{
+                padding: 16,
+                backgroundColor: '#F0F3FF',
+                borderRadius: 12,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                color: '#5458FF',
+                fontWeight: 'bold',
+              }}
+            >
+              <svg
+                className="animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                style={{ width: 28, height: 28 }}
+              >
+                <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                />
+              </svg>
+              <span>生成中...</span>
+            </div>
+          </div>
+        )}
 
-      {/* 模型顯示 */}
-      <div style={{ flexBasis: '40%', flexShrink: 0, width: '100%', marginTop: 20, border: '1px solid #ddd' }}>
-        {modelPath && <ClientModelPage modelPath={modelPath} />}
+        {/* 模型顯示 */}
+        <div
+          style={{
+            flexBasis: '40%',
+            flexShrink: 0,
+            width: '100%',
+            marginTop: 20,
+            border: '1px solid #ddd',
+            borderRadius: 12,
+            overflow: 'hidden',
+            backgroundColor: '#fff',
+            position: 'relative',
+          }}
+        >
+          {modelPath && <ClientModelPage modelPath={modelPath} />}
+        </div>
       </div>
+
     </main>
   );
 }
