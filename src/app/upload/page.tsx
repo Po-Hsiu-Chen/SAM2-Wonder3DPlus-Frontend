@@ -27,6 +27,8 @@ export default function UploadPage() {
   const [modelPath, setModelPath] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -200,10 +202,48 @@ export default function UploadPage() {
   }, [maskBase64, previewUrl]);  // 監控 maskBase64 和圖片改變
 
   return (
-    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingLeft: '12%', paddingRight: '12%'}}>
+    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '14%', paddingRight: '14%'}}>
+      <h1 className="text-xl font-bold">3D 模型生成</h1>
+      
+      {/* 更換圖片按鈕 */}
+      {previewUrl && (
+        <button
+          onClick={() => document.getElementById('fileInput')?.click()}
+          style={{
+              display: 'inline-flex',
+              flexDirection: 'row',   
+              alignItems: 'center',   
+              background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
+              border: 'none',
+              borderRadius: 24,
+              gap: 6,
+              color: 'white',
+              padding: '10px 50px',
+              fontSize: 14,
+              fontWeight: 'bold',
+              boxShadow: '0 4px 12px rgba(0, 123, 255, 0.6)',
+              cursor: 'pointer',
+              userSelect: 'none',
+              minWidth: 'fit-content'
+            }}
+        >
+          <span className="material-symbols-outlined">
+            refresh
+          </span>
+          更換圖片
+        </button>
+      )}
+      <input
+        ref={fileInputRef}
+        id="fileInput"
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+      <hr style={{ width: '100%', border: '1px solid #EFEFF7'}} />
 
-      <h1 className="text-xl font-bold mb-6">3D 模型生成</h1>
-
+      {/* 編輯區域 */}
       <div
         style={{
           display: 'flex',
@@ -236,7 +276,6 @@ export default function UploadPage() {
             backgroundColor: '#F6F7FB',
             alignItems: 'center',
           }}
-          onClick={() => document.getElementById('fileInput')?.click()}
         >
           {previewUrl ? (
             <>
@@ -265,8 +304,8 @@ export default function UploadPage() {
                       canvas.style.width = `${img.clientWidth}px`;   
                       canvas.style.height = `${img.clientHeight}px`;
 
-                      console.log('Rendered width:', rect.width);
-                      console.log('Rendered height:', rect.height);
+                      // console.log('Rendered width:', rect.width);
+                      // console.log('Rendered height:', rect.height);
                     }
 
                     drawMask(); 
@@ -307,12 +346,17 @@ export default function UploadPage() {
                 color: '#4285f4',
                 cursor: 'pointer',
                 padding: 20,
+                backgroundColor: '#FDFDFF'
               }}
-              onClick={() => document.getElementById('fileInput')?.click()}
             >
               <span className="material-symbols-outlined"  style={{ fontSize: 64, color: '#4285f4', marginBottom: 20}}>add_photo_alternate</span>
 
               <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  document.getElementById('fileInput')?.click();
+                }}
+
                 style={{
                   display: 'inline-flex',
                   flexDirection: 'row',   
@@ -329,10 +373,6 @@ export default function UploadPage() {
                   cursor: 'pointer',
                   userSelect: 'none',
                   minWidth: 'fit-content'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  document.getElementById('fileInput')?.click();
                 }}
               >
                 <svg
@@ -381,13 +421,14 @@ export default function UploadPage() {
             }}
           >
             {[
-              { label: '保留', mode: 'point-positive', icon: 'edit' },
-              { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on' },
-              { label: '框選', mode: 'box', icon: 'pageless' },
-            ].map(({ label, mode: m, icon }) => (
+              { label: '保留', mode: 'point-positive', icon: 'edit', title: '點擊增加mask範圍' },
+              { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on', title: '點擊移除mask範圍' },
+              { label: '框選', mode: 'box', icon: 'pageless', title: '點擊左上角及右下角以框選欲加mask範圍' },
+            ].map(({ label, mode: m, icon, title }) => (
               <button
                 key={m}
                 onClick={() => setMode(m as Mode)}
+                title={title}
                 className={`w-full rounded text-gray-800 flex items-center gap-2 justify-start ${mode === m ? 'bg-gray-200' : 'bg-white'}`}
                 style={{
                   border: '1px solid #666',
@@ -409,6 +450,7 @@ export default function UploadPage() {
                 {label}
               </button>
             ))}
+
 
             {/* 生成模型按鈕 */}
             <button
@@ -446,7 +488,7 @@ export default function UploadPage() {
       </div>
       
       {/* 生成中狀態顯示區 */}
-      `<div style={{ position: 'relative', width: '100%' }}>
+      <div style={{ position: 'relative', width: '100%' }}>
         {isGenerating && (
           <div
             style={{
