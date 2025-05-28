@@ -178,11 +178,30 @@ export default function UploadPage() {
   
 
   useEffect(() => {
+    const img = imageRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas) return;
+
+    // 同步 canvas CSS 尺寸
+    const resizeObserver = new ResizeObserver(() => {
+      const rect = img.getBoundingClientRect();
+      canvas.style.width = rect.width + 'px';
+      canvas.style.height = rect.height + 'px';
+    });
+
+    resizeObserver.observe(img);
+
+    // 畫遮罩
     drawMask();
-  }, [maskBase64]);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [maskBase64, previewUrl]);  // 監控 maskBase64 和圖片改變
 
   return (
-    <main className="w-full min-h-screen p-4 flex flex-col items-center gap-4" style={{ backgroundColor: '#F7F7FF' }}>
+    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingLeft: '12%', paddingRight: '12%'}}>
+
       <h1 className="text-xl font-bold mb-6">3D 模型生成</h1>
 
       <div
@@ -191,6 +210,10 @@ export default function UploadPage() {
           width: '100%',
           //maxWidth: previewUrl ? '1200px' : '700px',
           //height: previewUrl ? '500px' : '300px', 
+          maxWidth: previewUrl ? '100%' : '700px',
+          height: previewUrl ? 'auto' : '300px',
+          aspectRatio: previewUrl ? '2 / 1' : undefined,  
+          //height: previewUrl ? 'auto' : '300px',          
           border: previewUrl ? 'none' : '1px dashed #4285f4',
           borderRadius: 12,
           backgroundColor: 'white',
@@ -235,11 +258,12 @@ export default function UploadPage() {
                     const img = imageRef.current;
                     const canvas = canvasRef.current;
                     if (img && canvas) {
-                      canvas.width = img.naturalWidth;
+                      canvas.width = img.naturalWidth; // 真實像素
                       canvas.height = img.naturalHeight;
-                      const rect = img.getBoundingClientRect();
-                      canvas.style.width = `${rect.width}px`;
-                      canvas.style.height = `${rect.height}px`;
+
+                      const rect = img.getBoundingClientRect(); // 取得畫面上的顯示尺寸
+                      canvas.style.width = `${img.clientWidth}px`;   
+                      canvas.style.height = `${img.clientHeight}px`;
 
                       console.log('Rendered width:', rect.width);
                       console.log('Rendered height:', rect.height);
@@ -352,6 +376,8 @@ export default function UploadPage() {
               alignItems: 'center',
               gap: 10,
               padding: 10,
+              paddingTop: '2%',
+              paddingBottom: '2%'
             }}
           >
             {[
