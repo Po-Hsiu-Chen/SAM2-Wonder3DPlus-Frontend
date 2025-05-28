@@ -2,32 +2,33 @@
 
 import { useState, useRef, useEffect } from 'react';
 import ClientModelPage from '@/components/ClientModelPage';
+import UploadSection from '@/components/UploadSection';
 
 type Mode = 'point-positive' | 'point-negative' | 'box';
-
 type Point = { x: number; y: number; label: 0 | 1 };
 type BoxCoord = { x: number; y: number };
 
-
-
-
 export default function UploadPage() {
+  // -------- 圖片處理 --------
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // -------- 操作模式與標記 --------
+  const [mode, setMode] = useState<Mode>('point-positive');
+  const [points, setPoints] = useState<Point[]>([]);
+  const [boxTemp, setBoxTemp] = useState<BoxCoord[]>([]); // 暫存框選座標
+  const [box, setBox] = useState<[number, number, number, number] | null>(null);
   const [maskBase64, setMaskBase64] = useState<string | null>(null);
 
-  const [points, setPoints] = useState<Point[]>([]);
-  const [boxTemp, setBoxTemp] = useState<BoxCoord[]>([]); // 暫存 box 點
-  const [box, setBox] = useState<[number, number, number, number] | null>(null);
-
-  const [mode, setMode] = useState<Mode>('point-positive');
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const imageRef = useRef<HTMLImageElement | null>(null);
-
+  // -------- 模型處理 --------
   const [modelPath, setModelPath] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // -------- UI 流程狀態 --------
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -37,6 +38,7 @@ export default function UploadPage() {
       setPoints([]);
       setBox(null);
       setMaskBase64(null);
+      setCurrentStep(2);
     }
   };
 
@@ -84,10 +86,11 @@ export default function UploadPage() {
 
   const handleGenerate = async () => {
     if (!selectedFile || points.length === 0) {
-      alert("請先上傳圖片與選點");
+      alert("請透過滑鼠點擊生成遮罩");
       return;
     }
-
+    
+    setCurrentStep(3);
     setIsGenerating(true); // 開始載入狀態
 
     const formData = new FormData();
@@ -202,7 +205,7 @@ export default function UploadPage() {
   }, [maskBase64, previewUrl]);  // 監控 maskBase64 和圖片改變
 
   return (
-    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '14%', paddingRight: '14%'}}>
+    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '6%', paddingRight: '6%'}}>
       <h1 className="text-xl font-bold">3D 模型生成</h1>
       
       {/* 更換圖片按鈕 */}
@@ -243,250 +246,249 @@ export default function UploadPage() {
       />
       <hr style={{ width: '100%', border: '1px solid #EFEFF7'}} />
 
-      {/* 編輯區域 */}
-      <div
-        style={{
-          display: 'flex',
-          width: '100%',
-          //maxWidth: previewUrl ? '1200px' : '700px',
-          //height: previewUrl ? '500px' : '300px', 
-          maxWidth: previewUrl ? '100%' : '700px',
-          height: previewUrl ? 'auto' : '300px',
-          aspectRatio: previewUrl ? '2 / 1' : undefined,  
-          //height: previewUrl ? 'auto' : '300px',          
-          border: previewUrl ? 'none' : '1px dashed #4285f4',
-          borderRadius: 12,
-          backgroundColor: 'white',
-          userSelect: 'none',
-          overflow: 'hidden',
-          boxShadow: previewUrl ? '0 4px 12px rgba(0, 0, 0, 0.1)' : 'none',
-          transition: 'border 0.3s, box-shadow 0.3s, height 0.3s ease',
-          margin: '0 auto',
-        }}
-      >
-        {/* 左側：圖片預覽 */}
+      {/* 導覽區 + 編輯區 橫向排列 */}
+      <div style={{ display: 'flex', width: '100%', gap: '20px' }}>
+        {/* 導引區 */}
         <div
           style={{
-            flex: 1,
-            position: 'relative',
-            overflow: 'hidden',
-            cursor: 'crosshair',
+            width: '15%',
             display: 'flex',
-            justifyContent: 'center',
-            backgroundColor: '#F6F7FB',
-            alignItems: 'center',
+            flexDirection: 'column',
+            alignItems: 'flex-start',
+            gap: 12,
+            padding: 8,
+            fontSize: 12,
+            backgroundColor: '#FDFDFF',
+            borderRadius: 12,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
           }}
         >
-          {previewUrl ? (
-            <>
-              <div
-                style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '100%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                }}
-              >
-                <img
-                  ref={imageRef}
-                  src={previewUrl}
-                  alt="預覽圖"
-                  onLoad={() => {
-                    const img = imageRef.current;
-                    const canvas = canvasRef.current;
-                    if (img && canvas) {
-                      canvas.width = img.naturalWidth; // 真實像素
-                      canvas.height = img.naturalHeight;
-
-                      const rect = img.getBoundingClientRect(); // 取得畫面上的顯示尺寸
-                      canvas.style.width = `${img.clientWidth}px`;   
-                      canvas.style.height = `${img.clientHeight}px`;
-
-                      // console.log('Rendered width:', rect.width);
-                      // console.log('Rendered height:', rect.height);
-                    }
-
-                    drawMask(); 
-                  }}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    objectFit: 'contain',
-                    display: 'block',
-                    position: 'absolute',
-                    zIndex: 2,
-                  }}
-                />
-
-                <canvas
-                  ref={canvasRef}
-                  style={{
-                    position: 'absolute',
-                    zIndex: 3,
-                    width: '100%',  
-                    height: '100%', 
-                    cursor: 'crosshair',
-                  }}
-                  onClick={handleCanvasClick}
-                />
-
-              </div>
-            </>
-          ) : (
+          {[
+            { step: 1, label: '選取圖片' },
+            { step: 2, label: '圖片去背' },
+            { step: 3, label: '生成模型' }
+          ].map(({ step, label }) => (
             <div
+              key={step}
               style={{
-                width: '100%',
-                height: '100%',
                 display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
                 alignItems: 'center',
-                color: '#4285f4',
-                cursor: 'pointer',
-                padding: 20,
-                backgroundColor: '#FDFDFF'
+                gap: 8,
+                fontWeight: 'bold',
+                color: currentStep === step ? '#5458FF' : '#999',
+                backgroundColor: currentStep === step ? '#E0E4FF' : 'transparent',
+                borderRadius: 8,
+                padding: '6px 12px',
+                width: '100%',
               }}
             >
-              <span className="material-symbols-outlined"  style={{ fontSize: 64, color: '#4285f4', marginBottom: 20}}>add_photo_alternate</span>
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  document.getElementById('fileInput')?.click();
-                }}
-
+              <span
                 style={{
-                  display: 'inline-flex',
-                  flexDirection: 'row',   
-                  alignItems: 'center',   
-                  background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
-                  border: 'none',
-                  borderRadius: 24,
-                  gap: 6,
-                  color: 'white',
-                  padding: '10px 50px',
+                  backgroundColor: currentStep === step ? '#5458FF' : '#ccc',
+                  color: '#fff',
+                  borderRadius: '50%',
+                  width: 24,
+                  height: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   fontSize: 14,
-                  fontWeight: 'bold',
-                  boxShadow: '0 4px 12px rgba(0, 123, 255, 0.6)',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  minWidth: 'fit-content'
                 }}
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth="1.5"
-                  stroke="currentColor"
-                  style={{ width: 20, height: 20 }} 
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
-                  />
-                </svg>
-                上傳圖片
-              </button>
+                {step}
+              </span>
+              {label}
+            </div>
+          ))}
+        </div>
+        {/* 編輯區域 */}
+        <div
+          style={{
+            display: 'flex',
+            width: '100%',
+            //maxWidth: previewUrl ? '1200px' : '700px',
+            //height: previewUrl ? '500px' : '300px', 
+            maxWidth: '100%',
+            height: 'auto',
+            aspectRatio: '2 / 1',  
+            //height: previewUrl ? 'auto' : '300px',          
+            border: 'none',
+            borderRadius: 12,
+            backgroundColor: 'white',
+            userSelect: 'none',
+            overflow: 'hidden',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            transition: 'border 0.3s, box-shadow 0.3s, height 0.3s ease',
+            margin: '0 auto',
+          }}
+        >
 
-              <p style={{ marginTop: 12, color: '#666' }}>點擊按鈕上傳圖片或將圖片拖入</p>
-              <input
-                id="fileInput"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                style={{ display: 'none' }}
+          {/* 圖片預覽 */}
+          
+          <div
+            style={{
+              flex: 1,
+              position: 'relative',
+              overflow: 'hidden',
+              cursor: 'crosshair',
+              display: 'flex',
+              justifyContent: 'center',
+              backgroundColor: '#F6F7FB',
+              alignItems: 'center',
+            }}
+          >
+            {/* 圖片上傳區 */}
+            {!previewUrl && (
+              <UploadSection
+                previewUrl={previewUrl}
+                fileInputRef={fileInputRef}
+                handleFileChange={handleFileChange}
               />
+            )}
+
+            {/* 圖片預覽 */}
+            {previewUrl && (
+              <>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <img
+                    ref={imageRef}
+                    src={previewUrl}
+                    alt="預覽圖"
+                    onLoad={() => {
+                      const img = imageRef.current;
+                      const canvas = canvasRef.current;
+                      if (img && canvas) {
+                        canvas.width = img.naturalWidth; // 真實像素
+                        canvas.height = img.naturalHeight;
+
+                        const rect = img.getBoundingClientRect(); // 取得畫面上的顯示尺寸
+                        canvas.style.width = `${img.clientWidth}px`;   
+                        canvas.style.height = `${img.clientHeight}px`;
+
+                        // console.log('Rendered width:', rect.width);
+                        // console.log('Rendered height:', rect.height);
+                      }
+
+                      drawMask(); 
+                    }}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      objectFit: 'contain',
+                      display: 'block',
+                      position: 'absolute',
+                      zIndex: 2,
+                    }}
+                  />
+
+                  <canvas
+                    ref={canvasRef}
+                    style={{
+                      position: 'absolute',
+                      zIndex: 3,
+                      width: '100%',  
+                      height: '100%', 
+                      cursor: 'crosshair',
+                    }}
+                    onClick={handleCanvasClick}
+                  />
+
+                </div>
+              </>
+            )}
+          </div>
+
+
+          {/* 按鈕區 */}
+          {previewUrl && (
+            <div
+              style={{
+                width: '20%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'start',
+                alignItems: 'center',
+                gap: 10,
+                padding: 10,
+                paddingTop: '2%',
+                paddingBottom: '2%'
+              }}
+            >
+              {[
+                { label: '保留', mode: 'point-positive', icon: 'edit', title: '點擊增加mask範圍' },
+                { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on', title: '點擊移除mask範圍' },
+                { label: '框選', mode: 'box', icon: 'pageless', title: '點擊左上角及右下角以框選欲加mask範圍' },
+              ].map(({ label, mode: m, icon, title }) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m as Mode)}
+                  title={title}
+                  className={`w-full rounded text-gray-800 flex items-center gap-2 justify-start ${mode === m ? 'bg-gray-200' : 'bg-white'}`}
+                  style={{
+                    border: '1px solid #666',
+                    borderRadius: 16,
+                    padding: '6px 16px',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 12,
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.08)',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    transition: 'background-color 0.3s, border-color 0.3s',
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#1E2939' }}>
+                    {icon}
+                  </span>
+                  {label}
+                </button>
+              ))}
+
+
+              {/* 生成模型按鈕 */}
+              <button
+                onClick={handleGenerate}
+                style={{
+                  marginTop: 12,
+                  width: '100%',
+                  background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
+                  border: 'none',
+                  borderRadius: 16,
+                  padding: '8px 16px',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 13,
+                  fontWeight: 'bold',
+                  color: 'white',
+                  boxShadow: '0 2px 8px rgba(0, 123, 255, 0.6)',
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                  display: 'inline-flex',         
+                  whiteSpace: 'nowrap',     
+          
+                  transition: 'background 0.3s',
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>
+                  auto_awesome
+                </span>
+                生成 3D 模型
+              </button>
             </div>
           )}
         </div>
-
-
-        {/* 右側：按鈕區 */}
-        {previewUrl && (
-          <div
-            style={{
-              width: '20%',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'start',
-              alignItems: 'center',
-              gap: 10,
-              padding: 10,
-              paddingTop: '2%',
-              paddingBottom: '2%'
-            }}
-          >
-            {[
-              { label: '保留', mode: 'point-positive', icon: 'edit', title: '點擊增加mask範圍' },
-              { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on', title: '點擊移除mask範圍' },
-              { label: '框選', mode: 'box', icon: 'pageless', title: '點擊左上角及右下角以框選欲加mask範圍' },
-            ].map(({ label, mode: m, icon, title }) => (
-              <button
-                key={m}
-                onClick={() => setMode(m as Mode)}
-                title={title}
-                className={`w-full rounded text-gray-800 flex items-center gap-2 justify-start ${mode === m ? 'bg-gray-200' : 'bg-white'}`}
-                style={{
-                  border: '1px solid #666',
-                  borderRadius: 16,
-                  padding: '6px 16px',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 12,
-                  fontWeight: 'bold',
-                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.08)',
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                  transition: 'background-color 0.3s, border-color 0.3s',
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#1E2939' }}>
-                  {icon}
-                </span>
-                {label}
-              </button>
-            ))}
-
-
-            {/* 生成模型按鈕 */}
-            <button
-              onClick={handleGenerate}
-              style={{
-                marginTop: 12,
-                width: '100%',
-                background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
-                border: 'none',
-                borderRadius: 16,
-                padding: '8px 16px',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 13,
-                fontWeight: 'bold',
-                color: 'white',
-                boxShadow: '0 2px 8px rgba(0, 123, 255, 0.6)',
-                cursor: 'pointer',
-                userSelect: 'none',
-                display: 'inline-flex',         
-                whiteSpace: 'nowrap',     
-        
-                transition: 'background 0.3s',
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>
-                auto_awesome
-              </span>
-              生成 3D 模型
-            </button>
-          </div>
-        )}
-
-
       </div>
-      
+              
       {/* 生成中狀態顯示區 */}
       <div style={{ position: 'relative', width: '100%' }}>
         {isGenerating && (
@@ -556,7 +558,6 @@ export default function UploadPage() {
           {modelPath && <ClientModelPage modelPath={modelPath} />}
         </div>
       </div>
-
     </main>
   );
 }
