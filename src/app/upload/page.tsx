@@ -31,12 +31,26 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [showHelp, setShowHelp] = useState(false);
   const [helpStep, setHelpStep] = useState(0);
-  
+  const [showHelpAnimation, setShowHelpAnimation] = useState(true);
+
   const helpImages = [
-    { src: '/help/step1.png', caption: '點擊上傳圖片，選擇欲上傳的圖片' },
-    { src: '/help/step2.png', caption: '點擊保留，再點擊你想要增加遮罩的物體' },
-    { src: '/help/step3.png', caption: '點擊框選，點擊左上角再點擊右下角，框住你想要增加遮罩的物體' }
+    {
+      title: '上傳圖片',
+      src: '/help/step1.png',
+      caption: '點擊上傳圖片，選擇欲上傳的圖片',
+    },
+    {
+      title: '圖片去被',
+      src: '/help/step2.png',
+      caption: '點擊保留，再點擊你想要增加遮罩的物體',
+    },
+    {
+      title: '圖片去被',
+      src: '/help/step3.png',
+      caption: '點擊框選，點擊左上角再點擊右下角，框住你想要增加遮罩的物體',
+    },
   ];
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -211,6 +225,14 @@ export default function UploadPage() {
       resizeObserver.disconnect();
     };
   }, [maskBase64, previewUrl]);  // 監控 maskBase64 和圖片改變
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowHelpAnimation(false);
+    }, 3000); // 動畫持續 3 秒
+
+    return () => clearTimeout(timer);
+  }, []); 
 
   return (
     <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '6%', paddingRight: '6%'}}>
@@ -573,6 +595,7 @@ export default function UploadPage() {
       </div>
       <button
         onClick={() => setShowHelp(true)}
+        className={showHelpAnimation ? 'help-button bounce' : 'help-button'}
         style={{
           position: 'fixed',
           bottom: 24,
@@ -592,6 +615,7 @@ export default function UploadPage() {
       >
         ?
       </button>
+
       
       {showHelp && (
         <div
@@ -610,21 +634,32 @@ export default function UploadPage() {
             boxSizing: 'border-box',
           }}
         >
+          
           <div
             style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: 800,
-              backgroundColor: '#d9deff',
-              borderRadius: 16,
-              padding: 32,
-              color: '#4e5cb9',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-            }}
+            position: 'relative',
+            width: '100%',
+            maxWidth: 800, 
+            backgroundColor: '#d9deff',
+            borderRadius: 24, 
+            padding: '24px 64px', 
+            color: '#4e5cb9',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+          }}
+
           >
+            <h2 style={{
+              marginBottom: 8,
+              fontSize: 25,
+              fontWeight: 'bold',
+              textAlign: 'center',
+              color: '#4e5cb9'
+            }}>
+              {helpImages[helpStep].title}
+            </h2>
             {/* 關閉按鈕 */}
             <span
               className="material-symbols-outlined"
@@ -700,7 +735,7 @@ export default function UploadPage() {
               {helpImages[helpStep].caption}
             </p>
 
-            {/* 點點指示器 */}
+            {/* 目前圖片進度 */}
             <div style={{ display: 'flex', gap: 8 }}>
               {helpImages.map((_, idx) => (
                 <div
