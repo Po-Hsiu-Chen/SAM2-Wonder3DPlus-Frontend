@@ -29,6 +29,14 @@ export default function UploadPage() {
 
   // -------- UI 流程狀態 --------
   const [currentStep, setCurrentStep] = useState<number>(1);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpStep, setHelpStep] = useState(0);
+  
+  const helpImages = [
+    { src: '/help/step1.png', caption: '點擊上傳圖片，選擇欲上傳的圖片' },
+    { src: '/help/step2.png', caption: '點擊保留，再點擊你想要增加遮罩的物體' },
+    { src: '/help/step3.png', caption: '點擊框選，點擊左上角再點擊右下角，框住你想要增加遮罩的物體' }
+  ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,7 +97,7 @@ export default function UploadPage() {
       alert("請透過滑鼠點擊生成遮罩");
       return;
     }
-    
+
     setCurrentStep(3);
     setIsGenerating(true); // 開始載入狀態
 
@@ -432,9 +440,11 @@ export default function UploadPage() {
                   key={m}
                   onClick={() => setMode(m as Mode)}
                   title={title}
-                  className={`w-full rounded text-gray-800 flex items-center gap-2 justify-start ${mode === m ? 'bg-gray-200' : 'bg-white'}`}
+                  className={`w-full rounded flex items-center gap-2 justify-start ${
+                    mode === m ? 'bg-[#5B6CB2] text-white' : 'bg-white text-gray-800'
+                  }`}
                   style={{
-                    border: '1px solid #666',
+                    border: mode === m ? 'none' : '1px solid #666',
                     borderRadius: 16,
                     padding: '6px 16px',
                     alignItems: 'center',
@@ -447,7 +457,10 @@ export default function UploadPage() {
                     transition: 'background-color 0.3s, border-color 0.3s',
                   }}
                 >
-                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: '#1E2939' }}>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 20, color: mode === m ? '#FFFFFF' : '#1E2939' }}
+                  >
                     {icon}
                   </span>
                   {label}
@@ -558,6 +571,156 @@ export default function UploadPage() {
           {modelPath && <ClientModelPage modelPath={modelPath} />}
         </div>
       </div>
+      <button
+        onClick={() => setShowHelp(true)}
+        style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          width: 48,
+          height: 48,
+          borderRadius: '50%',
+          backgroundColor: '#5458FF',
+          color: '#fff',
+          border: 'none',
+          fontSize: 28,
+          fontWeight: 'bold',
+          cursor: 'pointer',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+          zIndex: 50,
+        }}
+      >
+        ?
+      </button>
+      
+      {showHelp && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            zIndex: 100,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '0 80px', 
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              maxWidth: 800,
+              backgroundColor: '#d9deff',
+              borderRadius: 16,
+              padding: 32,
+              color: '#4e5cb9',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+            }}
+          >
+            {/* 關閉按鈕 */}
+            <span
+              className="material-symbols-outlined"
+              onClick={() => setShowHelp(false)}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                fontSize: 32,
+                color: '#4e5cb9',
+                cursor: 'pointer',
+              }}
+            >
+              cancel
+            </span>
+
+            {/* 左箭頭 */}
+            <span
+              className="material-symbols-outlined"
+              onClick={() => setHelpStep((prev) => Math.max(0, prev - 1))}
+              style={{
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 40,
+                cursor: helpStep === 0 ? 'not-allowed' : 'pointer',
+                opacity: helpStep === 0 ? 0.3 : 1,
+                background: 'linear-gradient(90deg, #5254ff, #4796ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                userSelect: 'none',
+              }}
+            >
+              arrow_left
+            </span>
+
+            {/* 右箭頭 */}
+            <span
+              className="material-symbols-outlined"
+              onClick={() => setHelpStep((prev) => Math.min(helpImages.length - 1, prev + 1))}
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 40,
+                cursor: helpStep === helpImages.length - 1 ? 'not-allowed' : 'pointer',
+                opacity: helpStep === helpImages.length - 1 ? 0.3 : 1,
+                background: 'linear-gradient(90deg, #5254ff, #4796ff)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                userSelect: 'none',
+              }}
+            >
+              arrow_right
+            </span>
+
+            {/* 中央圖片 */}
+            <img
+              src={helpImages[helpStep].src}
+              alt={`step-${helpStep + 1}`}
+              style={{
+                maxWidth: '100%',
+                height: 'auto',
+                marginBottom: 16,
+                borderRadius: 12,
+              }}
+            />
+
+            {/* 說明文字 */}
+            <p style={{ marginBottom: 12, fontSize: 16, textAlign: 'center' }}>
+              {helpImages[helpStep].caption}
+            </p>
+
+            {/* 點點指示器 */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              {helpImages.map((_, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    width: 10,
+                    height: 10,
+                    borderRadius: '50%',
+                    backgroundColor: helpStep === idx ? '#4e5cb9' : '#aaa',
+                    opacity: helpStep === idx ? 1 : 0.4,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+
+
     </main>
   );
 }
