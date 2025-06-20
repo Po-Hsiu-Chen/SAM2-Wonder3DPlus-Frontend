@@ -40,12 +40,12 @@ export default function UploadPage() {
       caption: '點擊上傳圖片，選擇欲上傳的圖片',
     },
     {
-      title: '圖片去被',
+      title: '圖片去背',
       src: '/help/step2.png',
       caption: '點擊保留，再點擊你想要增加遮罩的物體',
     },
     {
-      title: '圖片去被',
+      title: '圖片去背',
       src: '/help/step3.png',
       caption: '點擊框選，點擊左上角再點擊右下角，框住你想要增加遮罩的物體',
     },
@@ -172,37 +172,68 @@ export default function UploadPage() {
 
   };
 
+  const drawPointsAndBox = (ctx: CanvasRenderingContext2D) => {
+    // 畫點
+    for (const p of points) {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 8, 0, 2 * Math.PI);
+      ctx.fillStyle = p.label === 1 ? 'limegreen' : 'red';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 2;
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    // 畫框
+    if (box) {
+      const [x1, y1, x2, y2] = box;
+      ctx.beginPath();
+      ctx.strokeStyle = 'green';
+      ctx.lineWidth = 3;
+      ctx.rect(x1, y1, x2 - x1, y2 - y1);
+      ctx.stroke();
+    }
+  };
+
+
   const drawMask = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     const img = imageRef.current;
-    if (!canvas || !ctx || !img || !maskBase64) return;
-  
+    if (!canvas || !ctx || !img) return;
+
     const { naturalWidth, naturalHeight } = img;
     canvas.width = naturalWidth;
     canvas.height = naturalHeight;
-  
+
+    // 清除畫布並畫原圖
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    // 若尚未有遮罩，只畫點與框
+    if (!maskBase64) {
+      drawPointsAndBox(ctx);
+      return;
+    }
+
+    // 有遮罩才載入
     const maskImg = new Image();
-    //maskImg.src = data:image/png;base64,${maskBase64};
     maskImg.src = `data:image/png;base64,${maskBase64}`;
     maskImg.onload = () => {
-      console.log("遮罩圖片已載入");
-      ctx.clearRect(0, 0, canvas.width, canvas.height); // 先清
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // 原圖
       ctx.globalAlpha = 0.5;
-      ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height); // 遮罩
+      ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height); // 畫遮罩
       ctx.globalAlpha = 1;
-  
-      // 測試框（可刪）
-      //ctx.fillStyle = "rgba(255, 0, 0, 0.2)";
-      //ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      drawPointsAndBox(ctx); // 再畫點與框
     };
-  
+
     maskImg.onerror = () => {
       console.error("遮罩載入失敗，base64:", maskBase64?.substring(0, 30));
+      // 仍然畫點與框
+      drawPointsAndBox(ctx);
     };
   };
-  
+
 
   useEffect(() => {
     const img = imageRef.current;
