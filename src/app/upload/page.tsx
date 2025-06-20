@@ -107,7 +107,7 @@ export default function UploadPage() {
   };
 
   const handleGenerate = async () => {
-    if (!selectedFile || points.length === 0) {
+    if (!selectedFile || (points.length === 0 && !box)) {
       alert("請透過滑鼠點擊生成遮罩");
       return;
     }
@@ -117,21 +117,21 @@ export default function UploadPage() {
 
     const formData = new FormData();
     formData.append('file', selectedFile);
-    formData.append('points', JSON.stringify(points));
+    formData.append('points', JSON.stringify(points.length > 0 ? points : []));
     if (box) {
       formData.append('box', JSON.stringify({ x1: box[0], y1: box[1], x2: box[2], y2: box[3] }));
     }
     formData.append('camera_type', 'persp');
 
     try {
-      const res = await fetch('http://localhost:8000/generate', {
+      const res = await fetch('http://127.0.0.1:8000/generate', {
         method: 'POST',
         body: formData,
       });
       const data = await res.json();
       if (data.status === "ok") {
         alert("模型已生成！");
-        const backendBaseUrl = "http://localhost:8000";
+        const backendBaseUrl = "http://127.0.0.1:8000";
         setModelPath(backendBaseUrl + data.model_path);
       } else {
         alert("生成失敗: " + data.message);
@@ -152,7 +152,7 @@ export default function UploadPage() {
     
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('points', JSON.stringify(points));
+    formData.append('points', JSON.stringify(points.length > 0 ? points : []));
     if (box) {
       formData.append(
         'box',
@@ -160,7 +160,7 @@ export default function UploadPage() {
       );
     }
 
-    const res = await fetch('http://localhost:8000/predict', {
+    const res = await fetch('http://127.0.0.1:8000/predict', {
       method: 'POST',
       body: formData,
     });
@@ -753,9 +753,6 @@ export default function UploadPage() {
           </div>
         </div>
       )}
-
-
-
     </main>
   );
 }

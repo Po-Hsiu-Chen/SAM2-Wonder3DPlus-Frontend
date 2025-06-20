@@ -55,8 +55,8 @@ def run_sam2_predict(
 
     predictor.set_image(image_array)
 
-    point_coords = np.array(coords)
-    point_labels = np.array(labels)
+    point_coords = np.array(coords) if coords else None
+    point_labels = np.array(labels) if labels else None
     box_arr = np.array(box) if box else None
 
     masks, scores, logits = predictor.predict(

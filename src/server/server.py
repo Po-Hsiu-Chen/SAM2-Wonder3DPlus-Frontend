@@ -27,8 +27,8 @@ app.add_middleware(
 @app.post("/predict")
 async def predict_mask(
     file: UploadFile = File(...),
-    points: str = Form(...),       # JSON 字串
-    box: Optional[str] = Form(None)  # JSON 字串
+    points: Optional[str] = Form(None),  # 改成可選
+    box: Optional[str] = Form(None)
 ):
     # 存圖
     contents = await file.read()
@@ -38,15 +38,20 @@ async def predict_mask(
 
     try:
         # 解析點資料
-        point_data = json.loads(points)  # List[{"x": int, "y": int, "label": int}]
-        coords = [(p["x"], p["y"]) for p in point_data]
-        labels = [p["label"] for p in point_data]
+        coords, labels = [], []
+        if points:
+            point_data = json.loads(points)  # List[{"x": int, "y": int, "label": int}]
+            coords = [(p["x"], p["y"]) for p in point_data]
+            labels = [p["label"] for p in point_data]
 
         # 解析 box 資料
         box_tuple = None
         if box:
             box_data = json.loads(box)
             box_tuple = (box_data["x1"], box_data["y1"], box_data["x2"], box_data["y2"])
+
+        if not coords and not box_tuple:
+            return {"status": "error", "message": "請至少提供一個點或一個框作為提示"}
 
         # sam2 回傳兩張圖 (去背後圖片, 遮罩圖片)
         image_no_background, mask = run_sam2_predict(image_path, coords, labels, box_tuple)
@@ -90,13 +95,19 @@ async def generate_3d_model(
         f.write(contents)
 
     # 解析點與框
-    point_data = json.loads(points)
-    coords = [(p["x"], p["y"]) for p in point_data]
-    labels = [p["label"] for p in point_data]
+    coords, labels = [], []
+    if points:
+        point_data = json.loads(points)
+        coords = [(p["x"], p["y"]) for p in point_data]
+        labels = [p["label"] for p in point_data]
+
     box_tuple = None
     if box:
         box_data = json.loads(box)
         box_tuple = (box_data["x1"], box_data["y1"], box_data["x2"], box_data["y2"])
+
+    if not coords and not box_tuple:
+        return {"status": "error", "message": "請至少提供一個點或一個框作為提示"}
 
     # SAM2 → 遮罩圖（RGBA）和去背後的圖片
     image_no_background, mask_img = run_sam2_predict(image_path, coords, labels, box_tuple)
