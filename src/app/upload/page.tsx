@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import ClientModelPage from '@/components/ClientModelPage';
 import UploadSection from '@/components/UploadSection';
+import Joyride, { CallBackProps, Step } from 'react-joyride';
 
 type Mode = 'point-positive' | 'point-negative' | 'box';
 type Point = { x: number; y: number; label: 0 | 1 };
@@ -22,6 +23,7 @@ export default function UploadPage() {
   const [boxTemp, setBoxTemp] = useState<BoxCoord[]>([]); // 暫存框選座標
   const [box, setBox] = useState<[number, number, number, number] | null>(null);
   const [maskBase64, setMaskBase64] = useState<string | null>(null);
+  const [hintOpen, setHintOpen] = useState(true);
 
   // -------- 模型處理 --------
   const [modelPath, setModelPath] = useState<string | null>(null);
@@ -31,7 +33,8 @@ export default function UploadPage() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [showHelp, setShowHelp] = useState(false);
   const [helpStep, setHelpStep] = useState(0);
-  const [showHelpAnimation, setShowHelpAnimation] = useState(true);
+  const [runJoyride, setRunJoyride] = useState(true);
+  const [mounted, setMounted] = useState(false);
 
   const helpImages = [
     {
@@ -51,6 +54,17 @@ export default function UploadPage() {
     },
   ];
 
+  const modeTitle = {
+    'point-positive': '保留',
+    'point-negative': '移除',
+    'box': '框選'
+  };
+
+  const modeHint: Record<Mode, string> = {
+    'point-positive': '點擊增加 mask 範圍',
+    'point-negative': '點擊移除 mask 範圍',
+    'box': '點擊左上角及右下角以框選欲加 mask 範圍',
+  };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -84,11 +98,9 @@ export default function UploadPage() {
       await sendToBackend(newPoints, box, selectedFile);
     }
     
-
     if (mode === 'box') {
       const temp = [...boxTemp, { x, y }];
       setBoxTemp(temp);
-
 
       if (temp.length === 2) {
         const x1 = Math.min(temp[0].x, temp[1].x);
@@ -195,7 +207,6 @@ export default function UploadPage() {
     }
   };
 
-
   const drawMask = () => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
@@ -223,17 +234,21 @@ export default function UploadPage() {
       ctx.globalAlpha = 0.5;
       ctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height); // 畫遮罩
       ctx.globalAlpha = 1;
-
       drawPointsAndBox(ctx); // 再畫點與框
     };
 
     maskImg.onerror = () => {
       console.error("遮罩載入失敗，base64:", maskBase64?.substring(0, 30));
-      // 仍然畫點與框
       drawPointsAndBox(ctx);
     };
   };
 
+  const handleJoyrideCallback = (data: CallBackProps) => {
+    const { action, index, type, step, lifecycle } = data;
+    if (step?.target === '.step-help' && lifecycle === 'complete') {
+      setRunJoyride(false); // 關閉導覽
+    }
+  };
 
   useEffect(() => {
     const img = imageRef.current;
@@ -256,17 +271,46 @@ export default function UploadPage() {
       resizeObserver.disconnect();
     };
   }, [maskBase64, previewUrl]);  // 監控 maskBase64 和圖片改變
-
+  
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowHelpAnimation(false);
-    }, 3000); // 動畫持續 3 秒
-
-    return () => clearTimeout(timer);
-  }, []); 
+    setMounted(true);
+  }, []);
 
   return (
     <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '6%', paddingRight: '6%'}}>
+      
+      {mounted && (
+        <Joyride
+          steps={[{
+            target: '.step-help',
+            content: '點擊此按鈕，可查看操作說明',
+            disableBeacon: true,
+          }]}
+          run={runJoyride}
+          callback={handleJoyrideCallback}
+          continuous
+          showProgress
+          showSkipButton
+          spotlightClicks={true}
+          disableOverlayClose={true}
+          locale={{
+            last: 'OK', 
+          }}
+          styles={{
+            options: {
+              zIndex: 1000,
+            },
+            buttonNext: {
+              backgroundColor: '#ffffff',     // 白底
+              color: '#999999',
+              border: '1px solid #cccccc',   
+              borderRadius: '9999px',        
+              padding: '6px 20px',
+              fontWeight: 'bold',
+            } }}
+        />
+      )}
+
       <h1 className="text-xl font-bold">3D 模型生成</h1>
       
       {/* 更換圖片按鈕 */}
@@ -311,6 +355,7 @@ export default function UploadPage() {
       <div style={{ display: 'flex', width: '100%', gap: '20px' }}>
         {/* 導引區 */}
         <div
+          className="step-sidebar"
           style={{
             width: '15%',
             display: 'flex',
@@ -362,17 +407,16 @@ export default function UploadPage() {
             </div>
           ))}
         </div>
+
         {/* 編輯區域 */}
         <div
+          className="step-upload"
           style={{
             display: 'flex',
             width: '100%',
-            //maxWidth: previewUrl ? '1200px' : '700px',
-            //height: previewUrl ? '500px' : '300px', 
             maxWidth: '100%',
             height: 'auto',
-            aspectRatio: '2 / 1',  
-            //height: previewUrl ? 'auto' : '300px',          
+            aspectRatio: '2 / 1',          
             border: 'none',
             borderRadius: 12,
             backgroundColor: 'white',
@@ -384,8 +428,7 @@ export default function UploadPage() {
           }}
         >
 
-          {/* 圖片預覽 */}
-          
+          {/* 圖片 */}
           <div
             style={{
               flex: 1,
@@ -406,10 +449,65 @@ export default function UploadPage() {
                 handleFileChange={handleFileChange}
               />
             )}
-
+            
             {/* 圖片預覽 */}
             {previewUrl && (
               <>
+                <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
+                  {hintOpen ? (
+                    <div style={{
+                      backgroundColor: '#fff',
+                      borderRadius: 12,
+                      padding: '12px 16px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      width: 240,
+                      position: 'relative',
+                    }}>
+                      {/* 關閉按鈕 */}
+                      <span
+                        onClick={() => setHintOpen(false)}
+                        className="material-symbols-outlined"
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          fontSize: 20,
+                          color: '#999',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        close
+                      </span>
+
+                      {/* 標題 + 內容 */}
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
+                        <span className="material-symbols-outlined" style={{ color: '#3CAAFE', fontSize: 18 }}>
+                          info
+                        </span>
+                        <span style={{ fontWeight: 'bold', fontSize: 14 }}>{modeTitle[mode]}</span>
+                      </div>
+                      <p style={{ fontSize: 13, color: '#666' }}>{modeHint[mode]}</p>
+                    </div>
+                  ) : (
+                    // 收合狀態：只顯示 info 圖示
+                    <span
+                      className="material-symbols-outlined"
+                      onClick={() => setHintOpen(true)}
+                      style={{
+                        fontSize: 28,
+                        color: '#3CAAFE',
+                        backgroundColor: 'rgba(255,255,255,0.9)',
+                        borderRadius: '50%',
+                        padding: 6,
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      info
+                    </span>
+                  )}
+                </div>
+
                 <div
                   style={{
                     position: 'relative',
@@ -438,7 +536,6 @@ export default function UploadPage() {
                         // console.log('Rendered width:', rect.width);
                         // console.log('Rendered height:', rect.height);
                       }
-
                       drawMask(); 
                     }}
                     style={{
@@ -468,7 +565,6 @@ export default function UploadPage() {
             )}
           </div>
 
-
           {/* 按鈕區 */}
           {previewUrl && (
             <div
@@ -485,14 +581,13 @@ export default function UploadPage() {
               }}
             >
               {[
-                { label: '保留', mode: 'point-positive', icon: 'edit', title: '點擊增加mask範圍' },
-                { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on', title: '點擊移除mask範圍' },
-                { label: '框選', mode: 'box', icon: 'pageless', title: '點擊左上角及右下角以框選欲加mask範圍' },
-              ].map(({ label, mode: m, icon, title }) => (
+                { label: '保留', mode: 'point-positive', icon: 'edit' },
+                { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on' },
+                { label: '框選', mode: 'box', icon: 'pageless' },
+              ].map(({ label, mode: m, icon }) => (
                 <button
                   key={m}
                   onClick={() => setMode(m as Mode)}
-                  title={title}
                   className={`w-full rounded flex items-center gap-2 justify-start ${
                     mode === m ? 'bg-[#5B6CB2] text-white' : 'bg-white text-gray-800'
                   }`}
@@ -520,12 +615,11 @@ export default function UploadPage() {
                 </button>
               ))}
 
-
               {/* 生成模型按鈕 */}
               <button
                 onClick={handleGenerate}
                 style={{
-                  marginTop: 12,
+                  marginTop: 'auto',
                   width: '100%',
                   background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
                   border: 'none',
@@ -624,9 +718,13 @@ export default function UploadPage() {
           {modelPath && <ClientModelPage modelPath={modelPath} />}
         </div>
       </div>
+      
       <button
-        onClick={() => setShowHelp(true)}
-        className={showHelpAnimation ? 'help-button bounce' : 'help-button'}
+        onClick={() => {
+          setShowHelp(true);
+          setRunJoyride(false); // 點擊時結束 Joyride
+        }}
+        className="help-button step-help"
         style={{
           position: 'fixed',
           bottom: 24,
@@ -647,7 +745,6 @@ export default function UploadPage() {
         ?
       </button>
 
-      
       {showHelp && (
         <div
           style={{
@@ -664,8 +761,7 @@ export default function UploadPage() {
             padding: '0 80px', 
             boxSizing: 'border-box',
           }}
-        >
-          
+        >  
           <div
             style={{
             position: 'relative',
@@ -680,7 +776,6 @@ export default function UploadPage() {
             alignItems: 'center',
             boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
           }}
-
           >
             <h2 style={{
               marginBottom: 8,
@@ -691,6 +786,7 @@ export default function UploadPage() {
             }}>
               {helpImages[helpStep].title}
             </h2>
+
             {/* 關閉按鈕 */}
             <span
               className="material-symbols-outlined"
