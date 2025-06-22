@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import ClientModelPage from '@/components/ClientModelPage';
 import UploadSection from '@/components/UploadSection';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
+import { useRouter } from 'next/navigation';
 
 type Mode = 'point-positive' | 'point-negative' | 'box';
 type Point = { x: number; y: number; label: 0 | 1 };
@@ -35,6 +35,8 @@ export default function UploadPage() {
   const [helpStep, setHelpStep] = useState(0);
   const [runJoyride, setRunJoyride] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(true);
+  const router = useRouter();
 
   const helpImages = [
     {
@@ -142,9 +144,9 @@ export default function UploadPage() {
       });
       const data = await res.json();
       if (data.status === "ok") {
-        alert("模型已生成！");
         const backendBaseUrl = "http://127.0.0.1:8000";
-        setModelPath(backendBaseUrl + data.model_path);
+        setModelPath(backendBaseUrl + data.model_path);  // 只儲存，不跳轉
+        alert("模型已生成！");
       } else {
         alert("生成失敗: " + data.message);
       }
@@ -277,7 +279,7 @@ export default function UploadPage() {
   }, []);
 
   return (
-    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '6%', paddingRight: '6%'}}>
+    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '8%', paddingRight: '8%'}}>
       
       {mounted && (
         <Joyride
@@ -301,10 +303,10 @@ export default function UploadPage() {
               zIndex: 1000,
             },
             buttonNext: {
-              backgroundColor: '#ffffff',     // 白底
+              backgroundColor: '#ffffff',
               color: '#999999',
-              border: '1px solid #cccccc',   
-              borderRadius: '9999px',        
+              border: '1px solid #cccccc',
+              borderRadius: '9999px',
               padding: '6px 20px',
               fontWeight: 'bold',
             } }}
@@ -341,6 +343,42 @@ export default function UploadPage() {
           更換圖片
         </button>
       )}
+
+      {/* 模型預覽提示 */}
+      {modelPath && !isGenerating && (
+        <div
+          style={{
+            width: '100%',
+            marginTop: 20,
+            padding: '10px 20px',
+            background: 'linear-gradient(90deg, #e0e4ff 0%, #f3f4ff 100%)',
+            borderRadius: 16,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+          }}
+        >
+          <span style={{ fontWeight: 'bold', color: '#4e5cb9' }}>模型已生成！可點擊預覽</span>
+          <button
+            onClick={() => router.push(`/viewer?model=${encodeURIComponent(modelPath)}`)}
+            style={{
+              padding: '6px 16px',
+              backgroundColor: '#5458FF',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+            }}
+          >
+            前往模型預覽
+          </button>
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         id="fileInput"
@@ -518,6 +556,46 @@ export default function UploadPage() {
                     alignItems: 'center',
                   }}
                 >
+                  {/* 模糊遮罩層 */}
+                  {isGenerating && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        zIndex: 5,
+                        width: '100%',
+                        height: '100%',
+                        backdropFilter: 'blur(4px)',
+                        backgroundColor: 'rgba(255,255,255,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        pointerEvents: 'none',
+                      }}
+                    >
+                      <div
+                        style={{
+                          padding: 16,
+                          backgroundColor: '#F0F3FF',
+                          borderRadius: 12,
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 12,
+                          color: '#5458FF',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        <svg className="animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                          stroke="currentColor" style={{ width: 28, height: 28 }}>
+                          <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                        </svg>
+                        <span>生成中...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* 預覽圖片與 canvas */}
                   <img
                     ref={imageRef}
                     src={previewUrl}
@@ -553,14 +631,14 @@ export default function UploadPage() {
                     style={{
                       position: 'absolute',
                       zIndex: 3,
-                      width: '100%',  
-                      height: '100%', 
+                      width: '100%',
+                      height: '100%',
                       cursor: 'crosshair',
                     }}
                     onClick={handleCanvasClick}
                   />
-
                 </div>
+
               </>
             )}
           </div>
@@ -586,6 +664,7 @@ export default function UploadPage() {
                 { label: '框選', mode: 'box', icon: 'pageless' },
               ].map(({ label, mode: m, icon }) => (
                 <button
+                  disabled={isGenerating}
                   key={m}
                   onClick={() => setMode(m as Mode)}
                   className={`w-full rounded flex items-center gap-2 justify-start ${
@@ -603,6 +682,8 @@ export default function UploadPage() {
                     cursor: 'pointer',
                     userSelect: 'none',
                     transition: 'background-color 0.3s, border-color 0.3s',
+                    opacity: isGenerating ? 0.5 : 1,
+                    pointerEvents: isGenerating ? 'none' : 'auto',
                   }}
                 >
                   <span
@@ -617,6 +698,7 @@ export default function UploadPage() {
 
               {/* 生成模型按鈕 */}
               <button
+                disabled={isGenerating}
                 onClick={handleGenerate}
                 style={{
                   marginTop: 'auto',
@@ -635,8 +717,8 @@ export default function UploadPage() {
                   userSelect: 'none',
                   display: 'inline-flex',         
                   whiteSpace: 'nowrap',     
-          
                   transition: 'background 0.3s',
+                  opacity: isGenerating ? 0.5 : 1,
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 18, marginRight: 6 }}>
@@ -648,77 +730,7 @@ export default function UploadPage() {
           )}
         </div>
       </div>
-              
-      {/* 生成中狀態顯示區 */}
-      <div style={{ position: 'relative', width: '100%' }}>
-        {isGenerating && (
-          <div
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backdropFilter: 'blur(4px)',
-              backgroundColor: 'rgba(255,255,255,0.6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10,
-              borderRadius: 12,
-            }}
-          >
-            <div
-              style={{
-                padding: 16,
-                backgroundColor: '#F0F3FF',
-                borderRadius: 12,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                color: '#5458FF',
-                fontWeight: 'bold',
-              }}
-            >
-              <svg
-                className="animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                style={{ width: 28, height: 28 }}
-              >
-                <circle cx="12" cy="12" r="10" strokeWidth="4" className="opacity-25" />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
-                />
-              </svg>
-              <span>生成中...</span>
-            </div>
-          </div>
-        )}
-
-        {/* 模型顯示 */}
-        <div
-          style={{
-            flexBasis: '40%',
-            flexShrink: 0,
-            width: '100%',
-            marginTop: 20,
-            border: '1px solid #ddd',
-            borderRadius: 12,
-            overflow: 'hidden',
-            backgroundColor: '#fff',
-            position: 'relative',
-          }}
-        >
-          {modelPath && <ClientModelPage modelPath={modelPath} />}
-        </div>
-      </div>
-      
+                    
       <button
         onClick={() => {
           setShowHelp(true);
@@ -876,6 +888,83 @@ export default function UploadPage() {
                   }}
                 />
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* 模型生成成功後的中央彈出提示 */}
+      {modelPath && !isGenerating && showPreviewModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0,0,0,0.4)',
+            zIndex: 100,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: '0 80px',
+            boxSizing: 'border-box',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 24,
+              padding: '24px 40px',
+              maxWidth: 600,
+              width: '100%',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+              position: 'relative',
+              textAlign: 'center',
+            }}
+          >
+            <h2 style={{ fontSize: 20, marginBottom: 12, color: '#4e5cb9' }}>
+              模型已生成
+            </h2>
+            <p style={{ fontSize: 14, marginBottom: 24 }}>
+              點擊下方按鈕可前往模型預覽畫面查看 3D 模型
+            </p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#fff',
+                  color: '#333',
+                  border: '2px solid #888',
+                  borderRadius: 24,
+                  fontWeight: 'bold',
+                  fontSize: 14,
+                  cursor: 'pointer',
+                  transition: 'background 0.3s',
+                }}
+              >
+                關閉
+              </button>
+
+              <button
+                onClick={() => router.push(`/viewer?model=${encodeURIComponent(modelPath)}`)}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 24,
+                  fontWeight: 'bold',
+                  fontSize: 14,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                  cursor: 'pointer',
+                  transition: 'background 0.3s',
+                }}
+              >
+                前往模型預覽
+              </button>
             </div>
           </div>
         </div>
