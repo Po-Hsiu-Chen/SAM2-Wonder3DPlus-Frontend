@@ -27,6 +27,8 @@ export default function UploadPage() {
 
   // -------- 模型處理 --------
   const [modelPath, setModelPath] = useState<string | null>(null);
+  const [colorPaths, setColorPaths] = useState<string[]>([]);
+  const [normalPaths, setNormalPaths] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // -------- UI 流程狀態 --------
@@ -145,8 +147,12 @@ export default function UploadPage() {
       const data = await res.json();
       if (data.status === "ok") {
         const backendBaseUrl = "http://127.0.0.1:8000";
-        setModelPath(backendBaseUrl + data.model_path);  // 只儲存，不跳轉
-        alert("模型已生成！");
+        setModelPath(backendBaseUrl + data.model_path);
+        setColorPaths(data.color_grid_paths.map((path: string) => backendBaseUrl + path));
+        setNormalPaths(data.normal_grid_paths.map((path: string) => backendBaseUrl + path));
+        // const modelPath = backendBaseUrl + data.model_path;
+        // const colorPath = backendBaseUrl + data.color_grid_path;
+        // const normalPath = backendBaseUrl + data.normal_grid_path;
       } else {
         alert("生成失敗: " + data.message);
       }
@@ -154,6 +160,25 @@ export default function UploadPage() {
       alert("請求失敗：" + error);
     }
 
+    // 模擬生成成功
+    // const fakeBaseUrl = "/fake_assets";
+    // setModelPath("/fake_assets/model.glb");
+    // setColorPaths([
+    //   `${fakeBaseUrl}/colors/rgb_000_back.png`,
+    //   `${fakeBaseUrl}/colors/rgb_000_front_left.png`,
+    //   `${fakeBaseUrl}/colors/rgb_000_left.png`,
+    //   `${fakeBaseUrl}/colors/rgb_000_front.png`,
+    //   `${fakeBaseUrl}/colors/rgb_000_front_right.png`,
+    //   `${fakeBaseUrl}/colors/rgb_000_right.png`,
+    // ]);
+    // setNormalPaths([
+    //   `${fakeBaseUrl}/normals/normals_000_back.png`,
+    //   `${fakeBaseUrl}/normals/normals_000_front_left.png`,
+    //   `${fakeBaseUrl}/normals/normals_000_left.png`,
+    //   `${fakeBaseUrl}/normals/normals_000_front.png`,
+    //   `${fakeBaseUrl}/normals/normals_000_front_right.png`,
+    //   `${fakeBaseUrl}/normals/normals_000_right.png`,
+    // ]);
     setIsGenerating(false); // 載入結束
   };
 
@@ -318,6 +343,7 @@ export default function UploadPage() {
       {/* 更換圖片按鈕 */}
       {previewUrl && (
         <button
+          disabled={isGenerating}
           onClick={() => document.getElementById('fileInput')?.click()}
           style={{
               display: 'inline-flex',
@@ -334,7 +360,8 @@ export default function UploadPage() {
               boxShadow: '0 4px 12px rgba(0, 123, 255, 0.6)',
               cursor: 'pointer',
               userSelect: 'none',
-              minWidth: 'fit-content'
+              minWidth: 'fit-content',
+              opacity: isGenerating ? 0.5 : 1
             }}
         >
           <span className="material-symbols-outlined">
@@ -361,7 +388,13 @@ export default function UploadPage() {
         >
           <span style={{ fontWeight: 'bold', color: '#4e5cb9' }}>模型已生成！可點擊預覽</span>
           <button
-            onClick={() => router.push(`/viewer?model=${encodeURIComponent(modelPath)}`)}
+            onClick={() =>                   
+              router.push(
+                `/viewer?model=${encodeURIComponent(modelPath)}`
+                + `&colors=${encodeURIComponent(JSON.stringify(colorPaths))}`
+                + `&normals=${encodeURIComponent(JSON.stringify(normalPaths))}`
+              )
+            }
             style={{
               padding: '6px 16px',
               backgroundColor: '#5458FF',
@@ -595,7 +628,7 @@ export default function UploadPage() {
                     </div>
                   )}
                   
-                  {/* 預覽圖片與 canvas */}
+                  {/* 預覽圖片 */}
                   <img
                     ref={imageRef}
                     src={previewUrl}
@@ -626,6 +659,7 @@ export default function UploadPage() {
                     }}
                   />
 
+                  {/* canvas */}
                   <canvas
                     ref={canvasRef}
                     style={{
@@ -638,7 +672,23 @@ export default function UploadPage() {
                     onClick={handleCanvasClick}
                   />
                 </div>
-
+                
+                {/* 互動遮罩 (生成中時阻擋 canvas 點擊) */}
+                {isGenerating && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      zIndex: 10,
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      cursor: 'not-allowed',
+                      pointerEvents: 'auto',
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                )}
               </>
             )}
           </div>
@@ -870,7 +920,7 @@ export default function UploadPage() {
             />
 
             {/* 說明文字 */}
-            <p style={{ marginBottom: 12, fontSize: 16, textAlign: 'center' }}>
+            <p style={{ marginBottom: 12, fontSize: 16, textAlign: 'center', zIndex: 15}}>
               {helpImages[helpStep].caption}
             </p>
 
@@ -949,7 +999,13 @@ export default function UploadPage() {
               </button>
 
               <button
-                onClick={() => router.push(`/viewer?model=${encodeURIComponent(modelPath)}`)}
+                onClick={() =>
+                  router.push(
+                    `/viewer?model=${encodeURIComponent(modelPath)}`
+                    + `&colors=${encodeURIComponent(JSON.stringify(colorPaths))}`
+                    + `&normals=${encodeURIComponent(JSON.stringify(normalPaths))}`
+                  )
+                }
                 style={{
                   padding: '12px 24px',
                   background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',

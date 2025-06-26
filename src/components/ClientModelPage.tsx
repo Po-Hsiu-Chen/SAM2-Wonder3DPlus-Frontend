@@ -15,7 +15,6 @@ export default function ClientModelPage({ modelPath }: ClientModelPageProps) {
 
   return (
     <main>
-      <h1>3D GLB Viewer</h1>
       <ModelViewer src={modelPath} />
     </main>
   );

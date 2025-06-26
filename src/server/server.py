@@ -132,9 +132,37 @@ async def generate_3d_model(
         return {"status": "error", "message": "3D 模型生成失敗"}
 
     model_relative_path = f"/output/{image_id}/model/output_image/iterative_refine-1/persp/3d_model/model.glb"
+    color_view_names = [
+        "rgb_000_back",
+        "rgb_000_front_left",
+        "rgb_000_left",
+        "rgb_000_front",
+        "rgb_000_front_right",
+        "rgb_000_right",
+    ]
 
+    normal_view_names = [
+        "normals_000_back",
+        "normals_000_front_left",
+        "normals_000_left",
+        "normals_000_front",
+        "normals_000_front_right",
+        "normals_000_right",
+    ]
+
+    color_grid_paths = [
+        f"/output/{image_id}/model/output_image/mv/persp/colors/{name}.png"
+        for name in color_view_names
+    ]
+    normal_grid_paths = [
+        f"/output/{image_id}/model/output_image/mv/persp/normals/{name}.png"
+        for name in normal_view_names
+    ]
+    
     return {
         "status": "ok",
-        "model_path": model_relative_path
+        "model_path": model_relative_path,
+        "color_grid_paths": color_grid_paths,
+        "normal_grid_paths": normal_grid_paths
     }
 
