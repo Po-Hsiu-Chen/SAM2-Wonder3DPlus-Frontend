@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import UploadSection from '@/components/UploadSection';
+import Header from '@/components/Header';
 import Joyride, { CallBackProps, Step } from 'react-joyride';
 import { useRouter } from 'next/navigation';
 
@@ -304,8 +305,8 @@ export default function UploadPage() {
   }, []);
 
   return (
-    <main className="w-full min-h-screen flex flex-col items-center gap-6" style={{ backgroundColor: '#F7F7FF', paddingTop: '2%', paddingLeft: '8%', paddingRight: '8%'}}>
-      
+    <main className="w-full min-h-screen flex flex-col items-center gap-6 pt-4" style={{ backgroundColor: '#F7F7FF', paddingLeft: '8%', paddingRight: '8%'}}>
+      <Header />
       {mounted && (
         <Joyride
           steps={[{
@@ -423,22 +424,20 @@ export default function UploadPage() {
       <hr style={{ width: '100%', border: '1px solid #EFEFF7'}} />
 
       {/* 導覽區 + 編輯區 橫向排列 */}
-      <div style={{ display: 'flex', width: '100%', gap: '20px' }}>
+      <div className="flex flex-col md:flex-row w-full gap-5">
         {/* 導引區 */}
         <div
-          className="step-sidebar"
-          style={{
-            width: '15%',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'flex-start',
-            gap: 12,
-            padding: 8,
-            fontSize: 12,
-            backgroundColor: '#FDFDFF',
-            borderRadius: 12,
-            boxShadow: '0 2px 6px rgba(0,0,0,0.06)',
-          }}
+          className="
+            step-sidebar
+            w-full md:w-[15%]
+            flex flex-row md:flex-col
+            items-center md:items-start
+            gap-3
+            bg-[#FDFDFF]
+            rounded-xl
+            shadow-sm
+            p-2
+          "
         >
           {[
             { step: 1, label: '選取圖片' },
@@ -470,6 +469,7 @@ export default function UploadPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: 14,
+                  aspectRatio: '1', 
                 }}
               >
                 {step}

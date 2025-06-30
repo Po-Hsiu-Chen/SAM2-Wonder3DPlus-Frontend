@@ -1,103 +1,109 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import Link from 'next/link';
+import Image from 'next/image';
+import Header from '@/components/Header';
+import ModelViewer from '@/components/ModelViewer';
+import { useEffect, useState } from 'react';
+
+const modelData = [
+  { glb: 'KINGJUN.glb', img: 'KINGJUN.jpg' },
+  { glb: 'Virus.glb', img: 'Virus.jpg' },
+  { glb: 'Mickey.glb', img: 'Mickey.jpg' },
+  { glb: 'Shrimp.glb', img: 'Shrimp.jpg' },
+  { glb: 'Stitch.glb', img: 'Stitch.jpg' },
+  { glb: 'PineappleBun.glb', img: 'PineappleBun.jpg' },
+  { glb: 'CustardBread.glb', img: 'CustardBread.jpg' },
+  { glb: 'EggTart.glb', img: 'EggTart.jpg' },
+];
+
+
+export default function HomePage() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="m-0 pt-4 min-h-screen bg-[#f7f7ff] text-gray-800" style={{ paddingLeft: '8%', paddingRight: '8%'}}>
+      {/* Header */}
+      <Header />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+      {/* Hero Section */}
+      <section className="w-full text-center py-20 px-6">
+        <h1 className="text-4xl font-bold mb-4">圖片轉 3D 模型</h1>
+        <p className="text-gray-500 text-lg">整合 SAM2 分割模型與 Wonder3D++，實現從 2D 圖像到 3D 模型（glTF）</p>
+      </section>
+
+      {/* 示意圖區塊 */}
+      <section className="w-[90%] mx-auto mb-20">
+        <div className="rounded-3xl bg-[#F6F7FB] shadow-lg p-10 flex flex-col lg:flex-row gap-12">
+          
+          {/* 左半部說明 */}
+          <div className="flex-1 flex flex-col justify-center">
+            <h2 className="text-2xl font-bold mb-2">即時遮罩與三維重建</h2>
+            <p className="text-gray-600 mb-6">支使用者透過點選或框選方式標記物體區域，系統將呼叫 SAM2 產生遮罩，經 Wonder3D++ 建構六視角深度圖與 glTF 模型</p>
+            <div className="flex gap-4">
+              <Link href="/upload" className="px-6 py-2 text-white rounded-full" style={{background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)'}}>立即開始</Link>
+              <a href="#gallery" className="px-6 py-2 bg-gray-200 rounded-full hover:bg-gray-300">瀏覽模型範例</a>
+            </div>
+          </div>
+
+          {/* 右半部圖片展示 */}
+          <div className="flex-1 flex items-center justify-center">
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src="/image2model_example.png"
+              alt="模型示意圖"
+              width={600}
+              height={400}
+              className="object-contain max-w-[300px] h-auto"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+
+
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </section>
+      
+      {/* 模型範例 */}
+      <section id="gallery" className="px-6 py-12 max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold text-center mb-12 text-gray-800">模型範例</h2>
+
+        <div
+          className="grid gap-6"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))" }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          {modelData.map(({ glb, img }, idx) => (
+            <div
+              key={idx}
+              className="relative group rounded-2xl shadow-lg bg-white overflow-hidden transition-transform transform hover:scale-105 hover:shadow-2xl"
+            >
+              {/* 模型展示區 */}
+              <div className="w-full aspect-square bg-gray-50 flex items-center justify-center overflow-hidden rounded-t-2xl">
+                {/* ModelViewer 和 Image 切換 */}
+                <div className="w-full h-full relative">
+                  <div className="w-full h-full transition-opacity duration-300 group-hover:opacity-0">
+                    <ModelViewer
+                      src={`/models/${glb}`}
+                      style={{ width: "100%", height: "100%" }}
+                    />
+                  </div>
+
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <Image
+                      src={`/images/${img}`}
+                      alt="原始圖片"
+                      width={180}
+                      height={180}
+                      className="object-contain max-h-full"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 模型名稱 */}
+              <p className="text-center mt-3 mb-4 text-sm font-medium text-gray-700 truncate px-3">
+                {glb}
+              </p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </main>
   );
 }

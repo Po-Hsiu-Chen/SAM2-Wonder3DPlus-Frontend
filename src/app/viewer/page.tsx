@@ -1,8 +1,9 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import ClientModelPage from '@/components/ClientModelPage';
+import ModelViewer from '@/components/ModelViewer';
 import { useEffect, useState } from 'react';
+import Header from '@/components/Header';
 
 export default function ViewerPage() {
   const searchParams = useSearchParams();
@@ -36,6 +37,8 @@ export default function ViewerPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center gap-6 px-6 py-10 bg-[#F7F7FF]">
+      <Header />
+      
       <h1 className="text-2xl font-bold text-[#4e5cb9] mb-4">3D 模型預覽</h1>
 
       <div className="w-full max-w-[1400px] flex gap-6" style={{ height: '80vh' }}>
@@ -108,7 +111,10 @@ export default function ViewerPage() {
             </div>
 
             {/* 模型展示 */}
-            <ClientModelPage modelPath={modelPath} />
+            <ModelViewer
+              src={modelPath}
+              style={{ width: '100%', height: '100%', backgroundColor: bgMode === 'dark' ? '#1e1e1e' : '#ffffff' }}
+            />
           </div>
         </div>
       </div>

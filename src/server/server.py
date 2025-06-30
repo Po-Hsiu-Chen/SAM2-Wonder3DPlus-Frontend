@@ -1,3 +1,5 @@
+import sys
+sys.path.append("/workspace/Wonder3DPlus")
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Optional
@@ -10,6 +12,7 @@ import io
 import os
 
 from sam2_predict_runner import run_sam2_predict  
+from run import run_wonder3d_inference
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
@@ -18,7 +21,7 @@ app.mount("/output", StaticFiles(directory="/workspace/output"), name="output")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 或是你可以限定成 ["http://localhost:3000"]
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,12 +125,11 @@ async def generate_3d_model(
 
     # 呼叫 Wonder3D 生成模型
     try:
-        subprocess.run([
-            "python", "../Wonder3DPlus/run.py",
-            "--input_path", output_image_path,  # 使用去背後的圖片
-            "--camera_type", camera_type,
-            "--output_path", os.path.join(temp_dir, "model")
-        ], check=True)
+        run_wonder3d_inference(
+            image_path=output_image_path,
+            output_path=os.path.join(temp_dir, "model"),
+            camera_type=camera_type
+        )
     except subprocess.CalledProcessError:
         return {"status": "error", "message": "3D 模型生成失敗"}
 
@@ -165,4 +167,3 @@ async def generate_3d_model(
         "color_grid_paths": color_grid_paths,
         "normal_grid_paths": normal_grid_paths
     }
-

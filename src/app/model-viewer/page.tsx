@@ -1,5 +1,10 @@
-// import ClientModelPage from '@/components/ClientModelPage';
+// import ModelViewer from '@/components/ModelViewer';
 
 // export default function Page() {
-//   return <ClientModelPage />;
+//   return (   
+//     <ModelViewer
+//         src={`/models/`}
+//         style={{ width: "100%", height: "100%" }}
+//     />
+//   );
 // }
