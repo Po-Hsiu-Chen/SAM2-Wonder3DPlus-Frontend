@@ -11,6 +11,28 @@ export default function ViewerPage() {
   const [colorPaths, setColorPaths] = useState<string[]>([]);
   const [normalPaths, setNormalPaths] = useState<string[]>([]);
   const [bgMode, setBgMode] = useState<'white' | 'dark'>('dark');
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number>(0);
+  const [lightboxType, setLightboxType] = useState<'color' | 'normal'>('color');
+
+  const openLightbox = (index: number, type: 'color' | 'normal') => {
+    setLightboxIndex(index);
+    setLightboxType(type);
+    setIsLightboxOpen(true);
+  };
+
+  const closeLightbox = () => setIsLightboxOpen(false);
+
+  const handlePrev = () => {
+    setLightboxIndex((prev) =>
+      prev === 0 ? (lightboxType === 'color' ? colorPaths.length - 1 : normalPaths.length - 1) : prev - 1
+    );
+  };
+
+  const handleNext = () => {
+    const length = lightboxType === 'color' ? colorPaths.length : normalPaths.length;
+    setLightboxIndex((prev) => (prev === length - 1 ? 0 : prev + 1));
+  };
 
   useEffect(() => {
     const model = searchParams.get('model');
@@ -55,6 +77,7 @@ export default function ViewerPage() {
                     src={path}
                     alt={`Color ${i}`}
                     className="rounded-lg shadow-md hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => openLightbox(i, 'color')}
                   />
                 </div>
               ))}
@@ -71,6 +94,7 @@ export default function ViewerPage() {
                     src={path}
                     alt={`Normal ${i}`}
                     className="rounded-lg shadow-md hover:scale-105 transition-transform duration-300 cursor-pointer"
+                    onClick={() => openLightbox(i, 'normal')}
                   />
                 </div>
               ))}
@@ -118,6 +142,44 @@ export default function ViewerPage() {
           </div>
         </div>
       </div>
+
+      {isLightboxOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
+          {/* 外框 */}
+          <div className="relative bg-white rounded-xl shadow-xl p-4 max-w-[90%] max-h-[90%]">
+            {/* 關閉按鈕 */}
+            <button
+              onClick={closeLightbox}
+              className="absolute top-2 right-2 text-gray-600 hover:text-black text-xl"
+            >
+              ×
+            </button>
+
+            {/* 左右箭頭 */}
+            <button
+              onClick={handlePrev}
+              className="absolute left-[-40px] top-1/2 -translate-y-1/2 text-3xl text-white bg-black/40 rounded-full px-2 hover:bg-black"
+            >
+              ‹
+            </button>
+
+            <img
+              src={(lightboxType === 'color' ? colorPaths : normalPaths)[lightboxIndex]}
+              alt="preview"
+              className="max-w-full max-h-[85vh] rounded-md"
+            />
+
+            <button
+              onClick={handleNext}
+              className="absolute right-[-40px] top-1/2 -translate-y-1/2 text-3xl text-white bg-black/40 rounded-full px-2 hover:bg-black"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+      )}
+
+
     </main>
   );
 }

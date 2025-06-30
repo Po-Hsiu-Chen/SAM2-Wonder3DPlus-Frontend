@@ -15,6 +15,11 @@ const modelData = [
   { glb: 'PineappleBun.glb', img: 'PineappleBun.jpg' },
   { glb: 'CustardBread.glb', img: 'CustardBread.jpg' },
   { glb: 'EggTart.glb', img: 'EggTart.jpg' },
+  { glb: 'Toucan.glb', img: 'Toucan.jpg' },
+  { glb: 'Turtle.glb', img: 'Turtle.jpg' },
+  { glb: 'Carp.glb', img: 'Carp.jpg' },
+  { glb: 'Toad.glb', img: 'Toad.jpg' },
+  { glb: 'Penguin.glb', img: 'Penguin.jpg' },
 ];
 
 
@@ -27,7 +32,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="w-full text-center py-20 px-6">
         <h1 className="text-4xl font-bold mb-4">圖片轉 3D 模型</h1>
-        <p className="text-gray-500 text-lg">整合 SAM2 分割模型與 Wonder3D++，實現從 2D 圖像到 3D 模型（glTF）</p>
+        <p className="text-gray-500 text-lg">整合 SAM2 分割模型與 Wonder3D++，實現從 2D 圖像到 3D 模型（glb）</p>
       </section>
 
       {/* 示意圖區塊 */}
