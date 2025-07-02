@@ -24,3 +24,9 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@media (min-width: 768px) {
+  .aspect-2-1 {
+    aspect-ratio: 2 / 1;
+  }
+}

@@ -32,7 +32,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="w-full text-center py-20 px-6">
         <h1 className="text-4xl font-bold mb-4">圖片轉 3D 模型</h1>
-        <p className="text-gray-500 text-lg">整合 SAM2 分割模型與 Wonder3D++，實現從 2D 圖像到 3D 模型（glb）</p>
+        <p className="text-gray-500 text-lg">整合 SAM2 分割與 Wonder3D++，實現從 2D 圖像到 3D 模型</p>
       </section>
 
       {/* 示意圖區塊 */}
@@ -42,25 +42,22 @@ export default function HomePage() {
           {/* 左半部說明 */}
           <div className="flex-1 flex flex-col justify-center">
             <h2 className="text-2xl font-bold mb-2">即時遮罩與三維重建</h2>
-            <p className="text-gray-600 mb-6">支使用者透過點選或框選方式標記物體區域，系統將呼叫 SAM2 產生遮罩，經 Wonder3D++ 建構六視角深度圖與 glTF 模型</p>
+            <p className="text-gray-600 mb-6">支使用者透過點選或框選方式標記物體區域，系統將呼叫 SAM2 產生遮罩，經 Wonder3D++ 建構多視角影像與 glb 模型</p>
             <div className="flex gap-4">
               <Link href="/upload" className="px-6 py-2 text-white rounded-full" style={{background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)'}}>立即開始</Link>
               <a href="#gallery" className="px-6 py-2 bg-gray-200 rounded-full hover:bg-gray-300">瀏覽模型範例</a>
             </div>
           </div>
 
-          {/* 右半部圖片展示 */}
-          <div className="flex-1 flex items-center justify-center">
-            <Image
-              src="/image2model_example.png"
-              alt="模型示意圖"
-              width={600}
-              height={400}
-              className="object-contain max-w-[300px] h-auto"
-            />
+          {/* 影片 */}
+          <div className="flex-1">
+            <div
+              className="w-full h-48 bg-gray-200 flex items-center justify-center"
+              style={{ minHeight: '200px' }}
+            >
+              放影片
+            </div>
           </div>
-
-
         </div>
       </section>
       

@@ -66,9 +66,9 @@ export default function UploadPage() {
   };
 
   const modeHint: Record<Mode, string> = {
-    'point-positive': '點擊增加 mask 範圍',
-    'point-negative': '點擊移除 mask 範圍',
-    'box': '點擊左上角及右下角以框選欲加 mask 範圍',
+    'point-positive': '點擊增加遮罩範圍',
+    'point-negative': '點擊移除遮罩範圍',
+    'box': '點擊左上角及右下角以框選欲加遮罩範圍',
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,6 +80,21 @@ export default function UploadPage() {
       setBox(null);
       setMaskBase64(null);
       setCurrentStep(2);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setPoints([]);
+      setBox(null);
+      setMaskBase64(null);
+      setCurrentStep(2);
+    } else {
+      alert("請上傳圖片格式的檔案");
     }
   };
 
@@ -355,8 +370,8 @@ export default function UploadPage() {
               borderRadius: 24,
               gap: 6,
               color: 'white',
-              padding: '10px 50px',
-              fontSize: 14,
+              padding: '6px 35px',
+              fontSize: 12,
               fontWeight: 'bold',
               boxShadow: '0 4px 12px rgba(0, 123, 255, 0.6)',
               cursor: 'pointer',
@@ -423,7 +438,6 @@ export default function UploadPage() {
       />
       <hr style={{ width: '100%', border: '1px solid #EFEFF7'}} />
 
-      {/* 導覽區 + 編輯區 橫向排列 */}
       <div className="flex flex-col md:flex-row w-full gap-5">
         {/* 導引區 */}
         <div
@@ -432,7 +446,6 @@ export default function UploadPage() {
             w-full md:w-[15%]
             flex flex-row md:flex-col
             items-center md:items-start
-            gap-3
             bg-[#FDFDFF]
             rounded-xl
             shadow-sm
@@ -451,6 +464,7 @@ export default function UploadPage() {
                 alignItems: 'center',
                 gap: 8,
                 fontWeight: 'bold',
+                fontSize: 12, 
                 color: currentStep === step ? '#5458FF' : '#999',
                 backgroundColor: currentStep === step ? '#E0E4FF' : 'transparent',
                 borderRadius: 8,
@@ -463,12 +477,12 @@ export default function UploadPage() {
                   backgroundColor: currentStep === step ? '#5458FF' : '#ccc',
                   color: '#fff',
                   borderRadius: '50%',
-                  width: 24,
-                  height: 24,
+                  width: 20,
+                  height: 20,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: 14,
+                  fontSize: 12,
                   aspectRatio: '1', 
                 }}
               >
@@ -481,24 +495,17 @@ export default function UploadPage() {
 
         {/* 編輯區域 */}
         <div
-          className="step-upload"
+          className="step-upload flex flex-col md:flex-row w-full max-w-full md:[aspect-ratio:2/1]"
           style={{
-            display: 'flex',
-            width: '100%',
-            maxWidth: '100%',
-            height: 'auto',
-            aspectRatio: '2 / 1',          
             border: 'none',
             borderRadius: 12,
             backgroundColor: 'white',
             userSelect: 'none',
             overflow: 'hidden',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            transition: 'border 0.3s, box-shadow 0.3s, height 0.3s ease',
             margin: '0 auto',
           }}
         >
-
           {/* 圖片 */}
           <div
             style={{
@@ -510,6 +517,7 @@ export default function UploadPage() {
               justifyContent: 'center',
               backgroundColor: '#F6F7FB',
               alignItems: 'center',
+              minHeight: 300,
             }}
           >
             {/* 圖片上傳區 */}
@@ -518,9 +526,10 @@ export default function UploadPage() {
                 previewUrl={previewUrl}
                 fileInputRef={fileInputRef}
                 handleFileChange={handleFileChange}
+                handleDrop={handleDrop}
               />
             )}
-            
+
             {/* 圖片預覽 */}
             {previewUrl && (
               <>
@@ -654,7 +663,7 @@ export default function UploadPage() {
                       maxHeight: '100%',
                       objectFit: 'contain',
                       display: 'block',
-                      position: 'absolute',
+                      position: 'relative',
                       zIndex: 2,
                     }}
                   />
@@ -695,23 +704,11 @@ export default function UploadPage() {
 
           {/* 按鈕區 */}
           {previewUrl && (
-            <div
-              style={{
-                width: '20%',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'start',
-                alignItems: 'center',
-                gap: 10,
-                padding: 10,
-                paddingTop: '2%',
-                paddingBottom: '2%'
-              }}
-            >
+            <div className="w-full md:w-[20%] flex flex-col justify-start items-center gap-3 p-3">
               {[
-                { label: '保留', mode: 'point-positive', icon: 'edit' },
-                { label: '移除', mode: 'point-negative', icon: 'do_not_disturb_on' },
-                { label: '框選', mode: 'box', icon: 'pageless' },
+                { label: '點擊生成遮罩', mode: 'point-positive', icon: 'edit' },
+                { label: '框選生成遮罩', mode: 'box', icon: 'pageless' },
+                { label: '點擊移除遮罩', mode: 'point-negative', icon: 'do_not_disturb_on' },
               ].map(({ label, mode: m, icon }) => (
                 <button
                   disabled={isGenerating}
@@ -723,10 +720,8 @@ export default function UploadPage() {
                   style={{
                     border: mode === m ? 'none' : '1px solid #666',
                     borderRadius: 16,
-                    padding: '6px 16px',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 12,
+                    padding: '6px 12px',
+                    fontSize: 13,
                     fontWeight: 'bold',
                     boxShadow: '0 2px 4px rgba(0, 0, 0, 0.08)',
                     cursor: 'pointer',
@@ -738,7 +733,10 @@ export default function UploadPage() {
                 >
                   <span
                     className="material-symbols-outlined"
-                    style={{ fontSize: 20, color: mode === m ? '#FFFFFF' : '#1E2939' }}
+                    style={{
+                      fontSize: 18,
+                      color: mode === m ? '#FFFFFF' : '#1E2939',
+                    }}
                   >
                     {icon}
                   </span>
@@ -746,27 +744,25 @@ export default function UploadPage() {
                 </button>
               ))}
 
-              {/* 生成模型按鈕 */}
               <button
                 disabled={isGenerating}
                 onClick={handleGenerate}
+                className="mt-auto w-full"
                 style={{
-                  marginTop: 'auto',
-                  width: '100%',
                   background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
                   border: 'none',
                   borderRadius: 16,
                   padding: '8px 16px',
-                  alignItems: 'center',
-                  justifyContent: 'center',
                   fontSize: 13,
                   fontWeight: 'bold',
                   color: 'white',
                   boxShadow: '0 2px 8px rgba(0, 123, 255, 0.6)',
                   cursor: 'pointer',
                   userSelect: 'none',
-                  display: 'inline-flex',         
-                  whiteSpace: 'nowrap',     
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  whiteSpace: 'nowrap',
                   transition: 'background 0.3s',
                   opacity: isGenerating ? 0.5 : 1,
                 }}
@@ -808,134 +804,73 @@ export default function UploadPage() {
       </button>
 
       {showHelp && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            backgroundColor: 'rgba(0,0,0,0.4)',
-            zIndex: 100,
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '0 80px', 
-            boxSizing: 'border-box',
-          }}
-        >  
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4 sm:px-20">
           <div
-            style={{
-            position: 'relative',
-            width: '100%',
-            maxWidth: 800, 
-            backgroundColor: '#d9deff',
-            borderRadius: 24, 
-            padding: '24px 64px', 
-            color: '#4e5cb9',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-          }}
+            className="
+              relative w-full max-w-[800px]
+              bg-[#d9deff] text-[#4e5cb9]
+              rounded-3xl
+              p-6 sm:p-10
+              flex flex-col items-center
+              shadow-[0_4px_20px_rgba(0,0,0,0.2)]
+              overflow-y-auto max-h-[90vh]
+            "
           >
-            <h2 style={{
-              marginBottom: 8,
-              fontSize: 25,
-              fontWeight: 'bold',
-              textAlign: 'center',
-              color: '#4e5cb9'
-            }}>
-              {helpImages[helpStep].title}
-            </h2>
-
             {/* 關閉按鈕 */}
             <span
-              className="material-symbols-outlined"
+              className="material-symbols-outlined absolute top-3 right-3 text-3xl cursor-pointer"
               onClick={() => setShowHelp(false)}
-              style={{
-                position: 'absolute',
-                top: 8,
-                right: 8,
-                fontSize: 32,
-                color: '#4e5cb9',
-                cursor: 'pointer',
-              }}
             >
               cancel
             </span>
 
-            {/* 左箭頭 */}
+            {/* 左右箭頭（縮小在手機） */}
             <span
-              className="material-symbols-outlined"
-              onClick={() => setHelpStep((prev) => Math.max(0, prev - 1))}
-              style={{
-                position: 'absolute',
-                left: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: 40,
-                cursor: helpStep === 0 ? 'not-allowed' : 'pointer',
-                opacity: helpStep === 0 ? 0.3 : 1,
-                background: 'linear-gradient(90deg, #5254ff, #4796ff)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                userSelect: 'none',
-              }}
+              className={`
+                material-symbols-outlined absolute left-1 top-1/2 -translate-y-1/2
+                text-4xl sm:text-5xl cursor-pointer
+                ${helpStep === 0 ? 'opacity-30 cursor-not-allowed' : 'text-transparent bg-gradient-to-r from-[#5254ff] to-[#4796ff] bg-clip-text'}
+              `}
+              onClick={() => helpStep > 0 && setHelpStep(helpStep - 1)}
             >
               arrow_left
             </span>
 
-            {/* 右箭頭 */}
             <span
-              className="material-symbols-outlined"
-              onClick={() => setHelpStep((prev) => Math.min(helpImages.length - 1, prev + 1))}
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                fontSize: 40,
-                cursor: helpStep === helpImages.length - 1 ? 'not-allowed' : 'pointer',
-                opacity: helpStep === helpImages.length - 1 ? 0.3 : 1,
-                background: 'linear-gradient(90deg, #5254ff, #4796ff)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                userSelect: 'none',
-              }}
+              className={`
+                material-symbols-outlined absolute right-1 top-1/2 -translate-y-1/2
+                text-4xl sm:text-5xl cursor-pointer
+                ${helpStep === helpImages.length - 1 ? 'opacity-30 cursor-not-allowed' : 'text-transparent bg-gradient-to-r from-[#5254ff] to-[#4796ff] bg-clip-text'}
+              `}
+              onClick={() => helpStep < helpImages.length - 1 && setHelpStep(helpStep + 1)}
             >
               arrow_right
             </span>
 
-            {/* 中央圖片 */}
+            {/* 標題 */}
+            <h2 className="mb-2 text-xl sm:text-2xl font-bold text-center">
+              {helpImages[helpStep].title}
+            </h2>
+
+            {/* 圖片 */}
             <img
               src={helpImages[helpStep].src}
               alt={`step-${helpStep + 1}`}
-              style={{
-                maxWidth: '100%',
-                height: 'auto',
-                marginBottom: 16,
-                borderRadius: 12,
-              }}
+              className="w-full h-auto mb-4 rounded-xl max-h-[50vh] object-contain"
             />
 
             {/* 說明文字 */}
-            <p style={{ marginBottom: 12, fontSize: 16, textAlign: 'center', zIndex: 15}}>
-              {helpImages[helpStep].caption}
-            </p>
+            <p className="mb-3 text-center text-base">{helpImages[helpStep].caption}</p>
 
-            {/* 目前圖片進度 */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            {/* 進度 */}
+            <div className="flex gap-2">
               {helpImages.map((_, idx) => (
                 <div
                   key={idx}
-                  style={{
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    backgroundColor: helpStep === idx ? '#4e5cb9' : '#aaa',
-                    opacity: helpStep === idx ? 1 : 0.4,
-                  }}
+                  className={`
+                    w-[10px] h-[10px] rounded-full
+                    ${helpStep === idx ? 'bg-[#4e5cb9]' : 'bg-[#aaa] opacity-40'}
+                  `}
                 />
               ))}
             </div>

@@ -12,7 +12,7 @@ export default function Header() {
         >
           deployed_code
         </span>
-        <span className="font-bold text-lg text-blue-900">Test</span>
+        <span className="font-bold text-lg text-blue-900">OneShot3D</span>
       </Link>
 
       <nav className="flex gap-6 text-sm font-semibold text-blue-800">
