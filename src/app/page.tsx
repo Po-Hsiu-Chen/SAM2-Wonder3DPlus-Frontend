@@ -31,17 +31,17 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="w-full text-center py-20 px-6">
-        <h1 className="text-4xl font-bold mb-4">圖片轉 3D 模型</h1>
+        <h1 className="text-4xl font-bold mb-4 text-blue-900">圖片轉 3D 模型</h1>
         <p className="text-gray-500 text-lg">整合 SAM2 分割與 Wonder3D++，實現從 2D 圖像到 3D 模型</p>
       </section>
 
       {/* 示意圖區塊 */}
-      <section className="w-[90%] mx-auto mb-20">
-        <div className="rounded-3xl bg-[#F6F7FB] shadow-lg p-10 flex flex-col lg:flex-row gap-12">
+      <section className="w-full mx-auto mb-20">
+        <div className="rounded-3xl bg-[#FCFCFF] shadow-lg p-10 flex flex-col lg:flex-row gap-12">
           
           {/* 左半部說明 */}
           <div className="flex-1 flex flex-col justify-center">
-            <h2 className="text-2xl font-bold mb-2">即時遮罩與三維重建</h2>
+            <h2 className="text-2xl font-bold mb-2 text-blue-900">即時遮罩與三維重建</h2>
             <p className="text-gray-600 mb-6">支使用者透過點選或框選方式標記物體區域，系統將呼叫 SAM2 產生遮罩，經 Wonder3D++ 建構多視角影像與 glb 模型</p>
             <div className="flex gap-4">
               <Link href="/upload" className="px-6 py-2 text-white rounded-full" style={{background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)'}}>立即開始</Link>

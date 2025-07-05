@@ -198,7 +198,6 @@ export default function UploadPage() {
     setIsGenerating(false); // 載入結束
   };
 
-
   const sendToBackend = async (
     points: Point[],
     box: [number, number, number, number] | null,
@@ -514,9 +513,10 @@ export default function UploadPage() {
               overflow: 'hidden',
               cursor: 'crosshair',
               display: 'flex',
+              flexDirection: 'column',
               justifyContent: 'center',
               backgroundColor: '#F6F7FB',
-              alignItems: 'center',
+              alignItems: 'stretch',
               minHeight: 300,
             }}
           >
@@ -900,9 +900,9 @@ export default function UploadPage() {
             style={{
               backgroundColor: '#fff',
               borderRadius: 24,
-              padding: '24px 40px',
-              maxWidth: 600,
-              width: '100%',
+              padding: '20px',
+              width: '90vw', 
+              maxWidth: 420,
               boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
               position: 'relative',
               textAlign: 'center',
@@ -915,11 +915,18 @@ export default function UploadPage() {
               點擊下方按鈕可前往模型預覽畫面查看 3D 模型
             </p>
 
-            <div style={{ display: 'flex', justifyContent: 'center', gap: 16 }}>
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: 12,
+              marginTop: 20,
+            }}>
               <button
                 onClick={() => setShowPreviewModal(false)}
                 style={{
-                  padding: '12px 24px',
+                  padding: '10px 20px',
                   backgroundColor: '#fff',
                   color: '#333',
                   border: '2px solid #888',
@@ -927,7 +934,9 @@ export default function UploadPage() {
                   fontWeight: 'bold',
                   fontSize: 14,
                   cursor: 'pointer',
-                  transition: 'background 0.3s',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 關閉
@@ -942,7 +951,7 @@ export default function UploadPage() {
                   )
                 }
                 style={{
-                  padding: '12px 24px',
+                  padding: '10px 20px',
                   background: 'linear-gradient(90deg, #5458FF 0%, #3CAAFF 100%)',
                   color: 'white',
                   border: 'none',
@@ -951,7 +960,9 @@ export default function UploadPage() {
                   fontSize: 14,
                   boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                   cursor: 'pointer',
-                  transition: 'background 0.3s',
+                  width: 'fit-content',
+                  maxWidth: '100%',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 前往模型預覽

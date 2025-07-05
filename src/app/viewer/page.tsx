@@ -58,60 +58,78 @@ export default function ViewerPage() {
   }
 
   return (
-    <main className="min-h-screen flex flex-col items-center gap-6 px-6 py-10 bg-[#F7F7FF]">
+    <main className="min-h-screen flex flex-col items-center gap-6 px-6 py-10 bg-[#F7F7FF] pt-[72px]">
+      {/* Header */}
       <Header />
       
-      <h1 className="text-2xl font-bold text-[#4e5cb9] mb-4">3D 模型預覽</h1>
+      {/* Hero Section */}
+      <section className="w-full text-center py-16 px-6">
+        <h1 className="text-4xl font-bold text-blue-900 mb-3">3D 模型預覽</h1>
+        <p className="text-gray-500 text-base">
+          使用滑鼠拖曳即可自由旋轉模型
+        </p>
+      </section>
 
-      <div className="w-full max-w-[1400px] flex gap-6" style={{ height: '80vh' }}>
+      <div className="w-full max-w-[1400px] flex flex-col lg:flex-row gap-6" style={{ height: 'auto' }}>
+
         {/* 左半部 - multiview 圖片 */}
-        <div className="basis-1/2 overflow-auto flex flex-col gap-6 pl-[0.5%] pr-[0.5%] border border-gray-300 rounded-lg">
-          
-          {/* Color Maps */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Color Maps</h2>
-            <div className="flex flex-wrap gap-3">
-              {colorPaths.map((path, i) => (
-                <div key={`color-${i}`} className="w-[15%] min-w-[100px] group relative">
-                  <img
-                    src={path}
-                    alt={`Color ${i}`}
-                    className="rounded-lg shadow-md hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    onClick={() => openLightbox(i, 'color')}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+        <div className="w-full lg:basis-1/2 overflow-auto flex flex-col gap-6 px-[1%] max-h-[80vh]">
+          {[
+            { title: 'Color Maps', icon: 'palette', paths: colorPaths, type: 'color' as const },
+            { title: 'Normal Maps', icon: 'texture', paths: normalPaths, type: 'normal' as const },
+          ].map(({ title, icon, paths, type }) => (
+            <div key={type} className="bg-white p-4 rounded-xl shadow-md border border-gray-200">
+              <h2 className="text-md font-semibold text-gray-700 flex items-center gap-2 mb-3">
+                <span className="material-symbols-outlined text-[20px] text-blue-500">{icon}</span>
+                {title}
+              </h2>
 
-          {/* Normal Maps */}
-          <div>
-            <h2 className="text-lg font-semibold text-gray-700 mb-2">Normal Maps</h2>
-            <div className="flex flex-wrap gap-3">
-              {normalPaths.map((path, i) => (
-                <div key={`normal-${i}`} className="w-[15%] min-w-[100px] group relative">
-                  <img
-                    src={path}
-                    alt={`Normal ${i}`}
-                    className="rounded-lg shadow-md hover:scale-105 transition-transform duration-300 cursor-pointer"
-                    onClick={() => openLightbox(i, 'normal')}
-                  />
-                </div>
-              ))}
+              <div className="flex flex-wrap gap-3">
+                {paths.map((path, i) => (
+                  <div
+                    key={`${type}-${i}`}
+                    className="w-[18%] min-w-[90px] aspect-square relative group overflow-hidden rounded-md shadow hover:scale-105 transition-transform cursor-pointer"
+                    onClick={() => openLightbox(i, type)}
+                  >
+                    <img
+                      src={path}
+                      alt={`${title} ${i}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-sm">
+                      點擊預覽
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
 
-        {/* 右半部 - 模型檢視區 */}
-        <div className="basis-1/2 relative flex flex-col">
+        {/* 右半部 - 模型檢視 */}
+        <div className="w-full lg:basis-1/2 relative flex flex-col">
           <div
-            className="flex-1 rounded-lg overflow-hidden relative"
+            className="rounded-lg overflow-hidden relative w-full min-h-[400px] aspect-[1/1] lg:aspect-auto lg:flex-1"
             style={{
               backgroundColor: bgMode === 'dark' ? '#1e1e1e' : '#ffffff',
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             }}
           >
-            {/* 背景切換開關 */}
+            {/* 下載按鈕 */}
+            {modelPath && (
+              <div className="absolute top-2 left-2 z-10">
+                <a
+                  href={modelPath}
+                  download
+                  className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 text-white rounded shadow hover:bg-blue-700 transition"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  下載模型
+                </a>
+              </div>
+            )}
+
+            {/* 背景切換 */}
             <div className="absolute top-2 right-2 z-10 flex items-center gap-2 text-sm text-gray-600">
               <label className="relative inline-flex items-center cursor-pointer w-14 h-8">
                 <input
@@ -121,7 +139,6 @@ export default function ViewerPage() {
                   onChange={() => setBgMode(prev => (prev === 'dark' ? 'white' : 'dark'))}
                 />
                 <div className="w-full h-full bg-gray-300 rounded-full peer-checked:bg-gray-500 transition-colors duration-300" />
-                
                 <div
                   className={`absolute top-1 left-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow transition-transform duration-300 ${
                     bgMode === 'dark' ? 'translate-x-6' : ''
@@ -142,10 +159,10 @@ export default function ViewerPage() {
           </div>
         </div>
       </div>
-
+      
+      {/* multiview 放大檢視 */}
       {isLightboxOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm bg-black/30">
-          {/* 外框 */}
           <div className="relative bg-white rounded-xl shadow-xl p-4 max-w-[90%] max-h-[90%]">
             {/* 關閉按鈕 */}
             <button
@@ -154,7 +171,7 @@ export default function ViewerPage() {
             >
               ×
             </button>
-
+          
             {/* 左右箭頭 */}
             <button
               onClick={handlePrev}
@@ -178,8 +195,6 @@ export default function ViewerPage() {
           </div>
         </div>
       )}
-
-
     </main>
   );
 }
